@@ -75,7 +75,7 @@ export default function Register() {
     try {
       // TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
       await registerUser(formData)
-      navigate('/dashboard')
+      navigate('/upload')
     } catch (err) {
       setSubmitError(err.message || 'Unable to create account. Please try again.')
     } finally {
