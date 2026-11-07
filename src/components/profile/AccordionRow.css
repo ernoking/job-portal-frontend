@@ -1,0 +1,104 @@
+.accordion-row {
+  width: 100%;
+  background-color: var(--row-bg, #F9FAF8);
+  border: 1px solid var(--row-line, #E4E8E1);
+  border-radius: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.accordion-row-header {
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 16px 0 14px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.accordion-row-header:focus-visible {
+  outline: 2px solid var(--link, #4B7F1D);
+  outline-offset: -2px;
+}
+
+.accordion-row-title {
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink, #10261B);
+  text-align: left;
+  line-height: 1;
+}
+
+.accordion-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.accordion-row-period {
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted, #66726B);
+  line-height: 1;
+}
+
+.accordion-row-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.accordion-row-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.accordion-row-body {
+  padding: 12px 14px 14px 14px;
+  border-top: 1px solid var(--row-line, #E4E8E1);
+  background-color: #FFFFFF;
+}
+
+.accordion-details-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.accordion-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.accordion-detail-label {
+  font-family: var(--font-family);
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--label, #9AA39D);
+}
+
+.accordion-detail-value {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink, #10261B);
+}
+
+@media (max-width: 600px) {
+  .accordion-details-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
