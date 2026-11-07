@@ -5,9 +5,17 @@
   --forest-button: #17332A;
   --forest-card: rgba(255, 255, 255, 0.06);
   --forest-card-border: rgba(255, 255, 255, 0.12);
+  --forest-deep: #132A1C;
+  --forest-track: #274236;
+  --stepper-line: #D5DAD2;
+  --dash: #CBD1C9;
+  --field-line: #DDE2DB;
   --lime: #DCF862;
+  --lime-soft: #EEF9C7;
+  --lime-soft-text: #8A9A5E;
   --lime-text: #D9F55B;
   --lime-glow: rgba(205, 240, 70, 0.35);
+  --slider-rest: #1B3A2B;
   --olive: #6F9B2F;
   --olive-on-dark: #8AB345;
   --link: #4B7F1D;

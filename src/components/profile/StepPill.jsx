@@ -1,9 +1,11 @@
 import React from 'react';
 import './StepPill.css';
 
-export default function StepPill({ step = 3, total = 3, title = 'Profile review' }) {
+export default function StepPill({ step = 3, total = 3, title = 'Profile review', width }) {
+  const pillStyle = width ? { width: `${width}px` } : undefined;
+
   return (
-    <div className="step-pill" data-testid="step-pill">
+    <div className={`step-pill step-pill-step-${step}`} style={pillStyle} data-testid="step-pill">
       <span className="step-pill-full">Step {step} of {total} · {title}</span>
       <span className="step-pill-short">Step {step} of {total}</span>
     </div>

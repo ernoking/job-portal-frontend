@@ -3,7 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import StepPill from './StepPill';
 import './AppHeader.css';
 
-export default function AppHeader() {
+export default function AppHeader({
+  step = 3,
+  total = 3,
+  stepTitle = 'Profile review',
+  pillWidth,
+  rightInset,
+}) {
   const navigate = useNavigate();
 
   const handleLogout = (e) => {
@@ -12,8 +18,12 @@ export default function AppHeader() {
     navigate('/login');
   };
 
+  const headerStyle = rightInset
+    ? { '--header-right-inset': `${rightInset}px` }
+    : undefined;
+
   return (
-    <header className="app-header" data-testid="app-header">
+    <header className="app-header" style={headerStyle} data-testid="app-header">
       <div className="app-header-inner">
         <Link to="/" className="app-header-logo" aria-label="Matchwise home" data-testid="app-header-logo">
           <div className="app-logo-tile">
@@ -38,7 +48,12 @@ export default function AppHeader() {
         </Link>
 
         <div className="app-header-right">
-          <StepPill step={3} total={3} title="Profile review" />
+          <StepPill
+            step={step}
+            total={total}
+            title={stepTitle}
+            width={pillWidth}
+          />
           <button
             type="button"
             className="app-header-logout"

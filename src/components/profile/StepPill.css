@@ -2,9 +2,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 163px;
   height: 30px;
-  padding: 0;
+  padding: 0 16px;
   background-color: var(--chip, #EEF1EC);
   border-radius: 9999px;
   color: var(--muted, #66726B);
@@ -16,14 +15,29 @@
   box-sizing: border-box;
 }
 
+.step-pill-step-1 {
+  width: 171px;
+  padding: 0;
+}
+
+.step-pill-step-2 {
+  width: 196px;
+  padding: 0;
+}
+
+.step-pill-step-3 {
+  width: 163px;
+  padding: 0;
+}
+
 .step-pill-short {
   display: none;
 }
 
 @media (max-width: 600px) {
   .step-pill {
-    width: auto;
-    padding: 0 12px;
+    width: auto !important;
+    padding: 0 12px !important;
     height: 28px;
     font-size: 11px;
   }
