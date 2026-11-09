@@ -1,0 +1,50 @@
+.step-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 16px;
+  background-color: var(--chip, #EEF1EC);
+  border-radius: 9999px;
+  color: var(--muted, #66726B);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.step-pill-step-1 {
+  width: 171px;
+  padding: 0;
+}
+
+.step-pill-step-2 {
+  width: 196px;
+  padding: 0;
+}
+
+.step-pill-step-3 {
+  width: 163px;
+  padding: 0;
+}
+
+.step-pill-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .step-pill {
+    width: auto !important;
+    padding: 0 12px !important;
+    height: 28px;
+    font-size: 11px;
+  }
+  .step-pill-full {
+    display: none;
+  }
+  .step-pill-short {
+    display: inline;
+  }
+}
