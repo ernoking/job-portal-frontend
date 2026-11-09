@@ -1,13 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { validateCvFile } from '../../utils/validateCvFile';
 import './DropZone.css';
-
-const ALLOWED_EXTS = ['.pdf', '.docx'];
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -24,17 +17,9 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
   const validateAndSelect = (selectedFile) => {
     if (!selectedFile) return;
 
-    const ext = '.' + selectedFile.name.split('.').pop().toLowerCase();
-    const isExtAllowed = ALLOWED_EXTS.includes(ext);
-    const isTypeAllowed = selectedFile.type ? ALLOWED_TYPES.includes(selectedFile.type) : true;
-
-    if (!isExtAllowed && !isTypeAllowed) {
-      onFileSelect(null, "That file type isn't supported. Upload a PDF or DOCX.");
-      return;
-    }
-
-    if (selectedFile.size > MAX_FILE_SIZE) {
-      onFileSelect(null, 'That file is larger than 10MB.');
+    const result = validateCvFile(selectedFile);
+    if (!result.ok) {
+      onFileSelect(null, result.message);
       return;
     }
 
@@ -128,7 +113,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
           {file ? file.name : 'Drag and drop your resume here'}
         </p>
         <p id="dropzone-format-text" className="dropzone-subtitle">
-          {file ? formatBytes(file.size) : 'Supports PDF, DOCX · Max 10MB'}
+          {file ? formatBytes(file.size) : 'Supports PDF, DOCX · Max 5MB'}
         </p>
         {errorMessage && (
           <p className="dropzone-error-msg" role="alert" data-testid="dropzone-error">

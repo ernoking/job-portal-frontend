@@ -2,28 +2,49 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './ActionBar.css';
 
-export default function ActionBar({ onConfirm, isSubmitting = false, errorMessage = '' }) {
+export default function ActionBar({
+  onConfirm,
+  onCancel,
+  isSubmitting = false,
+  isBlocked = false,
+  blockedMessage = '',
+  errorMessage = '',
+}) {
   return (
     <div className="action-bar-container">
-      {errorMessage && (
-        <div className="action-bar-error-toast" role="alert" data-testid="action-bar-error">
+      {blockedMessage ? (
+        <div
+          className="action-bar-error-toast"
+          role="alert"
+          data-testid="confirm-blocked-message"
+        >
+          {blockedMessage}
+        </div>
+      ) : errorMessage ? (
+        <div
+          className="action-bar-error-toast"
+          role="alert"
+          data-testid="action-bar-error"
+        >
           {errorMessage}
         </div>
-      )}
+      ) : null}
       <div className="action-bar" data-testid="action-bar">
         <Link
           to="/upload"
           className="action-bar-cancel"
           data-testid="cancel-reupload-btn"
+          onClick={onCancel}
         >
           Cancel and reupload CV
         </Link>
 
         <button
           type="button"
-          className="action-bar-confirm"
+          className={`action-bar-confirm ${isBlocked ? 'is-blocked' : ''}`}
           onClick={onConfirm}
           disabled={isSubmitting}
+          aria-disabled={isBlocked ? 'true' : undefined}
           data-testid="confirm-profile-btn"
         >
           <span className="action-bar-confirm-label">

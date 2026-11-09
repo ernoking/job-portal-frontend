@@ -8,6 +8,7 @@ import SkillChip from '../components/profile/SkillChip';
 import LanguageRow from '../components/profile/LanguageRow';
 import ActionBar from '../components/profile/ActionBar';
 import { getProfile, confirmProfile } from '../api/profile';
+import { clearDraft } from '../onboarding/draftStore';
 import './ProfileReview.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +41,19 @@ export default function ProfileReview() {
   // Submitting / confirm state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [confirmBlockedAttempted, setConfirmBlockedAttempted] = useState(false);
+
+  const isAnyEditOpen = Boolean(
+    isEditingPersonal ||
+    isEditingCareer ||
+    isAddingSkill ||
+    newLanguages.length > 0
+  );
+
+  const blockedMessage =
+    isAnyEditOpen && confirmBlockedAttempted
+      ? 'Save or cancel your open edits before confirming.'
+      : '';
 
   useEffect(() => {
     let isMounted = true;
@@ -54,9 +68,9 @@ export default function ProfileReview() {
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (isMounted) {
-          setParseError("We couldn't read your CV. Please upload it again.");
+          setParseError(err?.message || "We couldn't read your CV. Please upload it again.");
           setLoading(false);
         }
       });
@@ -68,12 +82,14 @@ export default function ProfileReview() {
 
   // Personal section handlers
   const handleStartEditPersonal = () => {
+    setConfirmBlockedAttempted(false);
     setEditPersonalData({ ...profile.personal });
     setPersonalErrors({});
     setIsEditingPersonal(true);
   };
 
   const handleCancelEditPersonal = () => {
+    setConfirmBlockedAttempted(false);
     setIsEditingPersonal(false);
     setPersonalErrors({});
   };
@@ -87,6 +103,7 @@ export default function ProfileReview() {
       ...prev,
       personal: { ...editPersonalData },
     }));
+    setConfirmBlockedAttempted(false);
     setIsEditingPersonal(false);
     setPersonalErrors({});
   };
@@ -100,11 +117,13 @@ export default function ProfileReview() {
 
   // Career section handlers
   const handleStartEditCareer = () => {
+    setConfirmBlockedAttempted(false);
     setEditCareerData({ ...profile.career });
     setIsEditingCareer(true);
   };
 
   const handleCancelEditCareer = () => {
+    setConfirmBlockedAttempted(false);
     setIsEditingCareer(false);
   };
 
@@ -113,6 +132,7 @@ export default function ProfileReview() {
       ...prev,
       career: { ...editCareerData },
     }));
+    setConfirmBlockedAttempted(false);
     setIsEditingCareer(false);
   };
 
@@ -129,6 +149,7 @@ export default function ProfileReview() {
   };
 
   const handleStartAddSkill = () => {
+    setConfirmBlockedAttempted(false);
     setIsAddingSkill(true);
     setNewSkillValue('');
   };
@@ -146,9 +167,11 @@ export default function ProfileReview() {
           skills: [...prev.skills, trimmed],
         }));
       }
+      setConfirmBlockedAttempted(false);
       setIsAddingSkill(false);
       setNewSkillValue('');
     } else if (e.key === 'Escape') {
+      setConfirmBlockedAttempted(false);
       setIsAddingSkill(false);
       setNewSkillValue('');
     }
@@ -165,6 +188,7 @@ export default function ProfileReview() {
         skills: [...prev.skills, trimmed],
       }));
     }
+    setConfirmBlockedAttempted(false);
     setIsAddingSkill(false);
     setNewSkillValue('');
   };
@@ -185,6 +209,7 @@ export default function ProfileReview() {
   };
 
   const handleStartAddLanguage = () => {
+    setConfirmBlockedAttempted(false);
     const newId = `new-lang-${Date.now()}`;
     setNewLanguages((prev) => [
       ...prev,
@@ -212,23 +237,31 @@ export default function ProfileReview() {
       }));
     }
     // Remove from temporary list
+    setConfirmBlockedAttempted(false);
     setNewLanguages((prev) => prev.filter((l) => l.id !== id));
   };
 
   // Confirm profile handler
   const handleConfirm = async () => {
+    if (isAnyEditOpen) {
+      setConfirmBlockedAttempted(true);
+      return;
+    }
+
+    setConfirmBlockedAttempted(false);
     setIsSubmitting(true);
     setSubmitError('');
     try {
       const res = await confirmProfile(profile);
       if (res && res.success !== false) {
+        clearDraft();
         navigate('/matches');
       } else {
         setSubmitError('Failed to confirm profile. Please try again.');
         setIsSubmitting(false);
       }
-    } catch {
-      setSubmitError('Failed to confirm profile. Please try again.');
+    } catch (err) {
+      setSubmitError(err?.message || 'Failed to confirm profile. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -254,7 +287,7 @@ export default function ProfileReview() {
           {/* Back link */}
           <div className="profile-back-row">
             <Link
-              to="/upload"
+              to="/preferences"
               className="profile-back-link"
               data-testid="back-to-previous-btn"
             >
@@ -314,7 +347,12 @@ export default function ProfileReview() {
             ) : parseError ? (
               <div className="profile-error-state" data-testid="profile-parse-error">
                 <p className="profile-error-text">{parseError}</p>
-                <Link to="/upload" className="profile-reupload-btn" data-testid="reupload-cv-btn">
+                <Link
+                  to="/upload"
+                  className="profile-reupload-btn"
+                  data-testid="reupload-cv-btn"
+                  onClick={() => clearDraft()}
+                >
                   Reupload CV
                 </Link>
               </div>
@@ -450,7 +488,10 @@ export default function ProfileReview() {
             <div className="profile-action-bar-wrapper">
               <ActionBar
                 onConfirm={handleConfirm}
+                onCancel={() => clearDraft()}
                 isSubmitting={isSubmitting}
+                isBlocked={isAnyEditOpen}
+                blockedMessage={blockedMessage}
                 errorMessage={submitError}
               />
             </div>

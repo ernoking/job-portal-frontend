@@ -1,35 +1,32 @@
 import { mockProfile } from '../mocks/profile';
+import { USE_MOCK_API } from './config';
+import { request } from './http';
+import { getDraft } from '../onboarding/draftStore';
+import { applyPreferencesToProfile } from '../onboarding/applyPreferencesToProfile';
 
 // TODO(AJSP-5): confirm endpoints, JSON shape and parse-error format with the backend team (AJSP-56, AJSP-57)
 
 export async function getProfile() {
-  try {
-    const res = await fetch('/api/profile');
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch {
-    // Until backend endpoint is ready, simulate network delay and return mock data
+  if (USE_MOCK_API) {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    return structuredClone(mockProfile);
+    const base = structuredClone(mockProfile);
+    const draft = getDraft();
+    return applyPreferencesToProfile(base, draft?.preferences);
   }
+
+  return await request('/api/profile');
 }
 
 export async function confirmProfile(profile) {
-  try {
-    const res = await fetch('/api/profile/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile),
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch {
-    // Until backend endpoint is ready, simulate success after delay
+  if (USE_MOCK_API) {
     await new Promise((resolve) => setTimeout(resolve, 400));
     return { success: true };
   }
+
+  return await request('/api/profile/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  });
 }
+

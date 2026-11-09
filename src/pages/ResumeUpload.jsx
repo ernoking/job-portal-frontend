@@ -34,8 +34,8 @@ export default function ResumeUpload() {
         setUploadError('Failed to upload CV. Please try again.');
         setIsAnalysing(false);
       }
-    } catch {
-      setUploadError('Failed to upload CV. Please try again.');
+    } catch (err) {
+      setUploadError(err?.message || 'Failed to upload CV. Please try again.');
       setIsAnalysing(false);
     }
   };

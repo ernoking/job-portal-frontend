@@ -15,7 +15,7 @@ export default function CareerPreferences() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   // Form State
   const [roles, setRoles] = useState([]);
@@ -32,7 +32,7 @@ export default function CareerPreferences() {
 
   const applyData = (data) => {
     if (!data) {
-      setLoadError(true);
+      setLoadError("We couldn't load your preferences.");
     } else {
       setRoles(data.roles || []);
       setLocation(data.location || '');
@@ -47,11 +47,11 @@ export default function CareerPreferences() {
 
   const handleRetry = () => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError('');
     getPreferences()
       .then(applyData)
-      .catch(() => {
-        setLoadError(true);
+      .catch((err) => {
+        setLoadError(err?.message || "We couldn't load your preferences.");
         setLoading(false);
       });
   };
@@ -64,9 +64,9 @@ export default function CareerPreferences() {
           applyData(data);
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (isMounted) {
-          setLoadError(true);
+          setLoadError(err?.message || "We couldn't load your preferences.");
           setLoading(false);
         }
       });
@@ -116,6 +116,7 @@ export default function CareerPreferences() {
       salary,
       workTypes,
       seniority,
+      aiDetectedSeniority,
       minimumMatchQuality: matchQuality,
     };
 
@@ -127,8 +128,8 @@ export default function CareerPreferences() {
         setSaveError('Failed to save preferences. Please try again.');
         setIsSaving(false);
       }
-    } catch {
-      setSaveError('Failed to save preferences. Please try again.');
+    } catch (err) {
+      setSaveError(err?.message || 'Failed to save preferences. Please try again.');
       setIsSaving(false);
     }
   };
@@ -226,7 +227,7 @@ export default function CareerPreferences() {
         </div>
       ) : loadError ? (
         <div className="career-error-state" data-testid="career-error">
-          <p className="career-error-text">We couldn't load your preferences.</p>
+          <p className="career-error-text">{loadError}</p>
           <button
             type="button"
             className="career-retry-btn"
