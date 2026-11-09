@@ -35,7 +35,7 @@ export default function Field({
           required={required}
           className={`field-input ${error ? 'field-input-error' : ''}`}
         />
-        {error && <span className="field-error-msg">{error}</span>}
+        {error && <span className="field-error-msg" data-testid={`${id}-error`}>{error}</span>}
       </div>
       {hint && <span className="field-hint">{hint}</span>}
     </div>

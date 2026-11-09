@@ -1,15 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout'
 import Field from '../components/Field'
 import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import { CheckIcon } from '../components/Icons'
 import { loginUser } from '../api/auth'
+import { useAuth } from '../auth'
 import './Login.css'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { signIn } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -58,11 +61,24 @@ export default function Login() {
 
     setIsLoading(true)
     try {
-      // TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
-      await loginUser(formData)
-      navigate('/dashboard')
+
+      const sessionData = await loginUser(formData)
+      signIn(sessionData, formData.rememberMe)
+      // TODO: if the user already confirmed a profile, go to /matches
+      const destination = location.state?.from?.pathname || location.state?.from || '/upload'
+      navigate(destination, { replace: true })
+
     } catch (err) {
-      setSubmitError(err.message || 'Unable to log in. Please try again.')
+      if (err.status === 401) {
+        setSubmitError('Incorrect email or password.')
+      } else if (err.status === 400 && (err.fields || err.body?.error?.fields)) {
+        setErrors((prev) => ({
+          ...prev,
+          ...(err.fields || err.body?.error?.fields),
+        }))
+      } else {
+        setSubmitError(err.message || 'Unable to log in. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -182,7 +198,7 @@ export default function Login() {
         </div>
 
         {submitError && (
-          <div className="auth-form-error" role="alert">
+          <div className="auth-form-error" role="alert" data-testid="login-error">
             {submitError}
           </div>
         )}
