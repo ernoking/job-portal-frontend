@@ -26,6 +26,9 @@
 }
 
 .auth-login .auth-left-panel {
+  width: 50%;
+  max-width: none;
+  padding-inline: clamp(24px, 6vw, 115px);
   background-color: var(--forest);
 }
 
@@ -217,6 +220,11 @@
   background-color: #FFFFFF;
 }
 
+.auth-login .auth-right-panel {
+  width: 50%;
+  min-width: 0;
+}
+
 .auth-back-nav {
   position: absolute;
   top: 45px;
@@ -315,8 +323,27 @@
     min-height: auto;
     height: auto;
   }
-  .auth-left-panel {
+  .auth-login {
+    flex-direction: column;
+  }
+  .auth-register .auth-left-panel {
     display: none;
+  }
+  .auth-login .auth-left-panel {
+    width: 100%;
+    padding: 24px clamp(16px, 6vw, 60px);
+    gap: 24px;
+  }
+  .auth-login .auth-right-panel {
+    width: 100%;
+    max-width: none;
+  }
+  .auth-login .auth-form-column {
+    max-width: 460px;
+  }
+  .auth-login .auth-left-heading {
+    font-size: clamp(32px, 5vw, 47px);
+    line-height: 1.05;
   }
   .auth-right-panel {
     width: 100%;

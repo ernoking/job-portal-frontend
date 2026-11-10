@@ -21,7 +21,7 @@ export default function AuthLayout({
 
   return (
     <div className={`auth-page ${isRegister ? 'auth-register' : 'auth-login'}`}>
-      {/* LEFT COLUMN (864px / 45%) */}
+      {/* LEFT COLUMN */}
       <section className="auth-left-panel">
         {/* Background decorative concentric circles */}
         <div className={`auth-concentric-circles ${isRegister ? 'circles-register' : 'circles-login'}`} aria-hidden="true">
@@ -64,7 +64,7 @@ export default function AuthLayout({
         </footer>
       </section>
 
-      {/* RIGHT COLUMN (1056px / 55%) */}
+      {/* RIGHT COLUMN */}
       <main className="auth-right-panel">
         {/* Top Back link */}
         <div className="auth-back-nav">
