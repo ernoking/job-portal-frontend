@@ -84,6 +84,7 @@
 
 .register-name-row {
   display: flex;
+  align-items: flex-start;
   gap: 14px;
   margin-bottom: 17px;
   width: 460px;
@@ -131,14 +132,12 @@
 }
 
 .terms-error-msg {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 2px;
+  display: block;
   font-family: var(--font-family);
   font-size: 12px;
   color: var(--error);
   line-height: 14px;
-  white-space: nowrap;
+  margin-top: 6px;
 }
 
 .register-submit-wrap {
