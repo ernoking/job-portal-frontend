@@ -1,58 +1,58 @@
-// TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
+import { request } from './http';
 
 /**
  * Authenticates an existing user against the backend.
- * During development, Vite proxies /api to http://localhost:3000.
  *
- * @param {Object} credentials - { email, password, rememberMe }
- * @returns {Promise<Object>}
+ * @param {{ email: string, password: string }} credentials
+ * @returns {Promise<{ token: string, expiresAt: number, user: object, success: boolean }>}
  */
 export async function loginUser(credentials) {
-  // TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
-  // Example future contract:
-  // const res = await fetch('/api/auth/login', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(credentials),
-  // })
-  // if (!res.ok) {
-  //   const errData = await res.json().catch(() => ({}))
-  //   throw new Error(errData.message || 'Invalid email or password')
-  // }
-  // return await res.json()
-
-  // Simulated backend delay and success for story demo:
-  await new Promise((resolve) => setTimeout(resolve, 600))
-  if (!credentials.email || !credentials.password) {
-    throw new Error('Please fill in all required fields.')
-  }
-  return { success: true, token: 'demo-token' }
+  const data = await request('/api/auth/login', {
+    method: 'POST',
+    body: {
+      email: credentials.email,
+      password: credentials.password,
+    },
+  });
+  return { ...data, success: true };
 }
 
 /**
  * Registers a new user account with the backend.
  *
- * @param {Object} userData - { firstName, lastName, middleName, email, password, agreeTerms }
- * @returns {Promise<Object>}
+ * @param {{ firstName: string, lastName: string, middleName?: string, email: string, password: string, agreeTerms: boolean }} userData
+ * @returns {Promise<{ token: string, expiresAt: number, user: object, success: boolean }>}
  */
 export async function registerUser(userData) {
-  // TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
-  // Example future contract:
-  // const res = await fetch('/api/auth/register', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(userData),
-  // })
-  // if (!res.ok) {
-  //   const errData = await res.json().catch(() => ({}))
-  //   throw new Error(errData.message || 'Unable to create account')
-  // }
-  // return await res.json()
+  const data = await request('/api/auth/register', {
+    method: 'POST',
+    body: userData,
+  });
+  return { ...data, success: true };
+}
 
-  // Simulated backend delay and success for story demo:
-  await new Promise((resolve) => setTimeout(resolve, 600))
-  if (!userData.email || !userData.password || !userData.firstName || !userData.lastName) {
-    throw new Error('Please fill in all required fields.')
-  }
-  return { success: true, userId: 'demo-user-id' }
+/**
+ * Revokes the current session on the backend.
+ *
+ * @param {string} [token]
+ * @returns {Promise<null>}
+ */
+export async function logoutUser(token) {
+  return await request('/api/auth/logout', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
+/**
+ * Fetches the currently authenticated user from /api/me.
+ *
+ * @param {string} [token]
+ * @returns {Promise<object>} The public user object
+ */
+export async function getCurrentUser(token) {
+  const data = await request('/api/me', {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  return data?.user ?? data;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StepPill from './StepPill';
+import { useAuth } from '../../auth';
 import './AppHeader.css';
 
 export default function AppHeader({
@@ -11,10 +12,11 @@ export default function AppHeader({
   rightInset,
 }) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
-  const handleLogout = (e) => {
+  const handleLogout = async (e) => {
     e.preventDefault();
-    // TODO(AJSP-5): clear session state when session handling is implemented with backend
+    await signOut();
     navigate('/login');
   };
 

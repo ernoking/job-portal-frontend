@@ -5,10 +5,12 @@ import Field from '../components/Field'
 import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import { registerUser } from '../api/auth'
+import { useAuth } from '../auth'
 import './Register.css'
 
 export default function Register() {
   const navigate = useNavigate()
+  const { signIn } = useAuth()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -73,11 +75,24 @@ export default function Register() {
 
     setIsLoading(true)
     try {
-      // TODO(AJSP-23): confirm endpoint paths, request/response shape and session handling with the backend team
-      await registerUser(formData)
+
+      const sessionData = await registerUser(formData)
+      signIn(sessionData, true)
       navigate('/upload')
     } catch (err) {
-      setSubmitError(err.message || 'Unable to create account. Please try again.')
+      if (err.status === 409) {
+        setErrors((prev) => ({
+          ...prev,
+          email: 'An account with this email already exists.',
+        }))
+      } else if (err.status === 400 && (err.fields || err.body?.error?.fields)) {
+        setErrors((prev) => ({
+          ...prev,
+          ...(err.fields || err.body?.error?.fields),
+        }))
+      } else {
+        setSubmitError(err.message || 'Unable to create account. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -226,7 +241,7 @@ export default function Register() {
               <span className="detached-period">.</span>
             </span>
           </Checkbox>
-          {errors.agreeTerms && <span className="terms-error-msg">{errors.agreeTerms}</span>}
+          {errors.agreeTerms && <span className="terms-error-msg" data-testid="agreeTerms-error">{errors.agreeTerms}</span>}
         </div>
 
         {/* Submit */}
@@ -237,7 +252,7 @@ export default function Register() {
         </div>
 
         {submitError && (
-          <div className="auth-form-error" role="alert">
+          <div className="auth-form-error" role="alert" data-testid="register-error">
             {submitError}
           </div>
         )}
