@@ -50,16 +50,12 @@
 }
 
 .field-error-msg {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 2px;
+  display: block;
   font-family: var(--font-family);
   font-size: 12px;
   color: var(--error);
   line-height: 14px;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 5;
+  margin-top: 6px;
 }
 
 .field-hint {
@@ -68,4 +64,8 @@
   color: #7A857E;
   margin-top: 8px;
   line-height: 14px;
+}
+
+.field-error-msg + .field-hint {
+  margin-top: 4px;
 }
