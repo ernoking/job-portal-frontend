@@ -1,0 +1,186 @@
+.filter-sidebar {
+  width: 220px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.filter-sidebar-title {
+  margin: 0 0 20px 0;
+  font-family: var(--font-family);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.filter-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.filter-input {
+  width: 100%;
+  height: 44px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 14px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--ink);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.filter-input::placeholder {
+  color: var(--placeholder);
+}
+
+.filter-input:focus {
+  border-color: var(--forest);
+  background-color: var(--surface);
+}
+
+/* Checkbox group */
+.filter-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.filter-checkbox-custom {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--line);
+  background-color: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.filter-checkbox-custom.is-checked {
+  background-color: var(--forest-track);
+  border-color: var(--forest-track);
+}
+
+.filter-checkbox-item:hover .filter-checkbox-custom:not(.is-checked) {
+  border-color: var(--forest-track);
+}
+
+.filter-checkbox-input:focus-visible + .filter-checkbox-custom {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.filter-checkbox-text {
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1;
+}
+
+/* Range Slider */
+.filter-slider-container {
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+
+.filter-slider-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 180px;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--lime);
+  border: 2px solid var(--forest-deep);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease;
+}
+
+.filter-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.filter-slider-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--lime);
+  border: 2px solid var(--forest-deep);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.filter-slider-caption {
+  font-family: var(--font-family);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* Tablet & Mobile responsive */
+@media (max-width: 1024px) {
+  .filter-sidebar {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .filter-slider-input {
+    width: 100%;
+    max-width: 240px;
+  }
+}

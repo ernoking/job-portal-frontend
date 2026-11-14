@@ -24,6 +24,12 @@
   --muted-light: #8A948E;
   --placeholder: #9CA59F;
   --line: #DDE2DB;
+  --eyebrow: #4B7F1D;
+  --column-bg: #F3F5F2;
+  --count-bg: #E3E8E1;
+  --fit-pill-bg: #E5F2C4;
+  --track-rest: #1B3A2B;
+  --overlay: rgba(30, 50, 40, 0.5);
   --input-bg: #FAFAF8;
   --page: #FAFAF8;
   --panel: #F3F5F0;

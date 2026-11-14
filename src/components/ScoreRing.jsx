@@ -1,9 +1,10 @@
 import React from 'react';
 import './ScoreRing.css';
 
-export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5 }) {
+export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5, stroke }) {
+  const actualStroke = stroke ?? strokeWidth;
   const isLarge = size >= 68;
-  const radius = (size - strokeWidth) / 2;
+  const radius = (size - actualStroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -17,7 +18,7 @@ export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5 }) 
           r={radius}
           fill="none"
           stroke="#E5EAE2"
-          strokeWidth={strokeWidth}
+          strokeWidth={actualStroke}
         />
         {/* Progress stroke */}
         <circle
@@ -26,7 +27,7 @@ export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5 }) 
           r={radius}
           fill="none"
           stroke="var(--lime)"
-          strokeWidth={strokeWidth}
+          strokeWidth={actualStroke}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
