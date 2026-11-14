@@ -108,7 +108,7 @@ export async function request(path, options = {}) {
   if (!res.ok) {
     if (res.status === 503) {
       throw new ApiError(
-        'The service is unavailable right now. Please try again later.',
+        data?.error?.message || 'The service is unavailable right now. Please try again later.',
         503,
         data
       );

@@ -5,7 +5,7 @@ export default function DarkPanel({ children, height = 620, className = '' }) {
   return (
     <div
       className={`dark-panel ${className}`}
-      style={{ height: `${height}px` }}
+      style={height == null ? undefined : { height }}
       data-testid="dark-panel"
     >
       {/* Decorative concentric arcs */}

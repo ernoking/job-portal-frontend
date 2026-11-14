@@ -1,39 +1,72 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import DarkPanel from '../components/onboarding/DarkPanel';
 import DropZone from '../components/onboarding/DropZone';
-import { uploadCv } from '../api/cv';
+import { generateCvProfile } from '../api/profile';
+import { getDraft, setDraft } from '../onboarding/draftStore';
+import { getCvDownloadUrl, listCvFiles, uploadCv } from '../api/cv';
 import './ResumeUpload.css';
 
 export default function ResumeUpload() {
   const navigate = useNavigate();
 
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedCvId, setUploadedCvId] = useState(() => getDraft().cvId);
   const [fileError, setFileError] = useState(null);
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [savedFiles, setSavedFiles] = useState([]);
+  const [savedFilesError, setSavedFilesError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    listCvFiles().then((files) => {
+      if (active) setSavedFiles(files);
+    }).catch(() => {
+      if (active) setSavedFilesError('Could not load saved CVs.');
+    });
+    return () => { active = false; };
+  }, []);
+
+  const downloadCv = async (id) => {
+    try {
+      window.location.assign(await getCvDownloadUrl(id));
+    } catch (error) {
+      setSavedFilesError(error.message);
+    }
+  };
 
   const handleFileSelect = (file, error) => {
     setSelectedFile(file);
+    if (file) {
+      setUploadedCvId(null);
+      setDraft({ cvId: null });
+    }
     setFileError(error);
     setUploadError('');
   };
 
   const handleStartAnalysis = async () => {
-    if (!selectedFile || isAnalysing) return;
+    if ((!selectedFile && !uploadedCvId) || isAnalysing) return;
 
     setIsAnalysing(true);
     setUploadError('');
 
     try {
-      const res = await uploadCv(selectedFile);
-      if (res && res.success !== false) {
-        navigate('/preferences');
-      } else {
-        setUploadError('Failed to upload CV. Please try again.');
-        setIsAnalysing(false);
+      let cvId = uploadedCvId;
+      if (!cvId) {
+        const result = await uploadCv(selectedFile);
+        if (!result?.success) throw new Error('Failed to upload CV. Please try again.');
+        cvId = result.cv?.id;
+        if (cvId) {
+          setUploadedCvId(cvId);
+          setDraft({ cvId });
+          setSavedFiles((files) => [result.cv, ...files.filter((file) => file.id !== cvId)]);
+        }
       }
+      if (cvId) await generateCvProfile(cvId);
+      navigate('/preferences');
     } catch (err) {
       setUploadError(err?.message || 'Failed to upload CV. Please try again.');
       setIsAnalysing(false);
@@ -92,6 +125,27 @@ export default function ResumeUpload() {
         errorMessage={fileError}
       />
 
+      {savedFiles.length > 0 && (
+        <div className="resume-saved-cv">
+          <label htmlFor="saved-cv">Use a saved CV</label>
+          <div className="resume-saved-cv-controls">
+            <select id="saved-cv" disabled={isAnalysing} value={uploadedCvId ?? ''} onChange={(event) => {
+              const cvId = event.target.value || null;
+              setUploadedCvId(cvId);
+              setSelectedFile(null);
+              setDraft({ cvId });
+              setUploadError('');
+            }}>
+              <option value="">Select a saved CV</option>
+              {savedFiles.map((file) => <option key={file.id} value={file.id}>{file.fileName}</option>)}
+            </select>
+            {uploadedCvId && <button type="button" onClick={() => downloadCv(uploadedCvId)}>Download CV</button>}
+          </div>
+          {uploadedCvId && <p role="status">You can analyse this CV again without re-uploading.</p>}
+        </div>
+      )}
+      {savedFilesError && <p className="resume-upload-error" role="alert">{savedFilesError}</p>}
+
       {uploadError && (
         <div className="resume-upload-error" role="alert" data-testid="upload-error">
           {uploadError}
@@ -100,9 +154,9 @@ export default function ResumeUpload() {
 
       <button
         type="button"
-        className={`resume-analyse-btn ${selectedFile ? 'is-enabled' : 'is-disabled'}`}
-        disabled={!selectedFile || isAnalysing}
-        aria-disabled={!selectedFile || isAnalysing}
+        className={`resume-analyse-btn ${(selectedFile || uploadedCvId) ? 'is-enabled' : 'is-disabled'}`}
+        disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
+        aria-disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
         onClick={handleStartAnalysis}
         data-testid="start-analysing-btn"
       >
@@ -124,8 +178,7 @@ export default function ResumeUpload() {
       stepTitle="Resume upload"
       pillWidth={171}
       rightInset={95}
-      whitePanelHeight={620}
-      darkPanel={<DarkPanel height={620}>{darkPanelContent}</DarkPanel>}
+      darkPanel={<DarkPanel height={null}>{darkPanelContent}</DarkPanel>}
       whitePanel={whitePanelContent}
       testId="onboarding-step-1"
     />

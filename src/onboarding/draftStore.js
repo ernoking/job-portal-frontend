@@ -9,6 +9,7 @@ function loadInitialDraft() {
         if (parsed && typeof parsed === 'object') {
           return {
             preferences: parsed.preferences || null,
+            cvId: typeof parsed.cvId === 'string' ? parsed.cvId : null,
           };
         }
       }
@@ -16,7 +17,7 @@ function loadInitialDraft() {
   } catch {
     // sessionStorage unavailable or restricted
   }
-  return { preferences: null };
+  return { preferences: null, cvId: null };
 }
 
 let currentDraft = loadInitialDraft();
@@ -53,7 +54,7 @@ export function setDraft(partial) {
 }
 
 export function clearDraft() {
-  currentDraft = { preferences: null };
+  currentDraft = { preferences: null, cvId: null };
   try {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(STORAGE_KEY);

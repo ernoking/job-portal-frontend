@@ -269,6 +269,7 @@ export default function ProfileReview() {
   const personalItems = [
     { key: 'name', label: 'NAME', placeholder: 'Your full name' },
     { key: 'email', label: 'EMAIL', type: 'email', placeholder: 'your.email@example.com' },
+    { key: 'phone', label: 'PHONE', type: 'tel', placeholder: 'Phone number' },
     { key: 'location', label: 'LOCATION', placeholder: 'City, Country' },
   ];
 
@@ -327,9 +328,9 @@ export default function ProfileReview() {
               </svg>
             </div>
             <div className="profile-title-content">
-              <h1 className="profile-heading">Your profile is ready.</h1>
+              <h1 className="profile-heading">{loading ? "Preparing your profile" : parseError ? "Profile unavailable" : "Your profile is ready."}</h1>
               <p className="profile-subtitle">
-                Everything parsed successfully. Give it one final check before viewing your matches.
+                {!loading && !parseError && "Review your details before viewing your matches."}
               </p>
             </div>
           </div>
@@ -351,7 +352,7 @@ export default function ProfileReview() {
                   to="/upload"
                   className="profile-reupload-btn"
                   data-testid="reupload-cv-btn"
-                  onClick={() => clearDraft()}
+
                 >
                   Reupload CV
                 </Link>
