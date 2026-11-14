@@ -112,12 +112,11 @@
 /* Main Card */
 .profile-card {
   width: 856px;
-  height: 758px;
   background-color: var(--surface, #FFFFFF);
   border: 1px solid var(--line, #E6E9E3);
   border-radius: 24px;
   box-shadow: 0 12px 40px rgba(20, 40, 30, 0.05);
-  padding: 83px 35px 16px 35px;
+  padding: 36px 35px 32px;
   box-sizing: border-box;
   margin-bottom: 12px;
 }
@@ -280,8 +279,7 @@
     white-space: normal;
   }
   .profile-card {
-    height: auto;
-    padding: 30px 20px 20px 20px;
+    padding: 30px 20px 24px;
     border-radius: 20px;
   }
 }
