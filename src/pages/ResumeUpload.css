@@ -1,3 +1,13 @@
+@media (min-width: 901px) {
+  .onboarding-step-1 .onboarding-block {
+    align-items: stretch;
+  }
+
+  .onboarding-step-1 .dark-panel {
+    min-height: 620px;
+  }
+}
+
 /* Left dark card */
 .resume-left-content {
   display: flex;
@@ -73,8 +83,9 @@
 .resume-right-content {
   display: flex;
   flex-direction: column;
-  padding-top: 46px;
+  padding-block: 46px 36px;
   width: 498px;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -209,7 +220,7 @@
 @media (max-width: 900px) {
   .resume-right-content {
     width: 100%;
-    padding-top: 10px;
+    padding-block: 10px 0;
   }
   .resume-analyse-btn {
     width: 100%;
@@ -218,4 +229,68 @@
   .resume-legal-text {
     white-space: normal;
   }
+}
+
+.resume-saved-cv {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--chip);
+  color: var(--ink);
+  font-family: var(--font-family);
+}
+
+.resume-saved-cv label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resume-saved-cv-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-saved-cv select,
+.resume-saved-cv button {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.resume-saved-cv select {
+  flex: 1 1 180px;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.resume-saved-cv button {
+  color: var(--link);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resume-saved-cv button:hover {
+  border-color: var(--link);
+}
+
+.resume-saved-cv :is(select, button):focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.resume-saved-cv p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
 }

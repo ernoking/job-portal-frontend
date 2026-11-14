@@ -22,3 +22,14 @@ export async function uploadCv(file) {
   });
 }
 
+
+export async function listCvFiles() {
+  if (USE_MOCK_API) return [];
+  const result = await request('/api/cv');
+  return result.files.map((file) => ({ id: file.id, fileName: file.original_name }));
+}
+
+export async function getCvDownloadUrl(cvId) {
+  const result = await request(`/api/cv/${encodeURIComponent(cvId)}/download`);
+  return result.url;
+}
