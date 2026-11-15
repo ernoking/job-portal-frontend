@@ -97,6 +97,40 @@
   gap: 12px;
 }
 
+.jobs-more-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.jobs-more-btn {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  box-sizing: border-box;
+}
+
+.jobs-more-btn:hover {
+  background-color: #F4F7F4;
+  border-color: var(--forest-track);
+  transform: translateY(-1px);
+}
+
+.jobs-more-btn:active {
+  transform: translateY(0);
+}
+
 /* Empty State */
 .jobs-feed-empty {
   background-color: var(--surface);

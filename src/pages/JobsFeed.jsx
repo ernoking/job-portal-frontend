@@ -5,13 +5,13 @@ import FilterSidebar from '../components/jobs/FilterSidebar';
 import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
-import { getMatches, getMatchDetail, filterJobs } from '../api/jobs';
+import { getMatches, getMatchDetail, filterJobs, USE_MOCK_JOBS } from '../api/jobs';
 import './JobsFeed.css';
 
 const INITIAL_FILTERS = {
   keywords: '',
   location: 'Budapest',
-  workTypes: ['Remote', 'Hybrid'],
+  workTypes: USE_MOCK_JOBS ? ['Remote', 'Hybrid'] : [],
   minMatch: 80,
 };
 
@@ -70,14 +70,18 @@ export default function JobsFeed() {
       });
   }, []);
 
+  const [visibleMoreCount, setVisibleMoreCount] = useState(2);
+
   // Filter jobs client-side from the initial render onwards
   const filteredJobs = useMemo(() => {
     return filterJobs(allJobs, filters);
   }, [allJobs, filters]);
 
   const featuredJob = filteredJobs[0] || null;
-  // First role as featured, next two as more strong matches
-  const moreJobs = filteredJobs.slice(1, 3);
+  const remainingJobs = filteredJobs.slice(1);
+  const moreJobs = remainingJobs.slice(0, visibleMoreCount);
+  const hasMore = remainingJobs.length > visibleMoreCount;
+  const remainingCount = remainingJobs.length - visibleMoreCount;
 
   // Fetch drawer job detail when ?job=<id> is in URL
   const fetchDrawerDetail = useCallback(
@@ -118,10 +122,12 @@ export default function JobsFeed() {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
+    setVisibleMoreCount(2);
   }, []);
 
   const handleResetFilters = useCallback(() => {
     setFilters(INITIAL_FILTERS);
+    setVisibleMoreCount(2);
   }, []);
 
   // Drawer open / close handlers
@@ -156,6 +162,7 @@ export default function JobsFeed() {
           <FilterSidebar
             filters={filters}
             onFilterChange={handleFilterChange}
+            disabledWorkType={!USE_MOCK_JOBS}
           />
 
           {/* Right Column: Feed Content */}
@@ -236,6 +243,20 @@ export default function JobsFeed() {
                         />
                       ))}
                     </div>
+
+                    {hasMore && (
+                      <div className="jobs-more-actions">
+                        <button
+                          type="button"
+                          className="jobs-more-btn"
+                          onClick={() => setVisibleMoreCount((prev) => prev + 5)}
+                          data-testid="show-more-matches-btn"
+                          aria-label={`Show more matches (${remainingCount} remaining)`}
+                        >
+                          Show more matches ({remainingCount} remaining)
+                        </button>
+                      </div>
+                    )}
                   </section>
                 )}
               </>

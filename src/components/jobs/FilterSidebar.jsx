@@ -1,6 +1,6 @@
 import './FilterSidebar.css';
 
-export default function FilterSidebar({ filters, onFilterChange }) {
+export default function FilterSidebar({ filters, onFilterChange, disabledWorkType = false }) {
   const {
     keywords = '',
     location = 'Budapest',
@@ -67,20 +67,40 @@ export default function FilterSidebar({ filters, onFilterChange }) {
 
       {/* Work Type Filter */}
       <div className="filter-group">
-        <span className="filter-label">Work type</span>
+        <div className="filter-label-row">
+          <span className="filter-label">Work type</span>
+          {disabledWorkType && (
+            <span
+              className="filter-coming-soon-badge"
+              title="Work arrangement filter coming soon"
+            >
+              Coming soon
+            </span>
+          )}
+        </div>
+        {disabledWorkType && (
+          <p className="filter-coming-soon-note">
+            Work arrangement filter coming soon
+          </p>
+        )}
         <div className="filter-checkbox-group">
           {['Remote', 'Hybrid', 'On-site'].map((type) => {
             const isChecked = workTypes.includes(type);
             return (
-              <label key={type} className="filter-checkbox-item">
+              <label
+                key={type}
+                className={`filter-checkbox-item ${disabledWorkType ? 'is-disabled' : ''}`}
+                title={disabledWorkType ? 'Work arrangement filter coming soon' : undefined}
+              >
                 <input
                   type="checkbox"
                   className="filter-checkbox-input"
                   checked={isChecked}
-                  onChange={() => handleWorkTypeToggle(type)}
+                  disabled={disabledWorkType}
+                  onChange={() => !disabledWorkType && handleWorkTypeToggle(type)}
                 />
                 <span
-                  className={`filter-checkbox-custom ${isChecked ? 'is-checked' : ''}`}
+                  className={`filter-checkbox-custom ${isChecked ? 'is-checked' : ''} ${disabledWorkType ? 'is-disabled' : ''}`}
                   aria-hidden="true"
                 >
                   {isChecked && (

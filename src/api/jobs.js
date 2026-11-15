@@ -10,6 +10,23 @@ import { MOCK_JOBS } from '../mocks/jobs';
 export const USE_MOCK_JOBS = import.meta.env.VITE_USE_MOCK_JOBS === 'true';
 
 /**
+ * Formats backend snake_case employment types (e.g. full_time, part_time)
+ * into title case (e.g. Full-time, Part-time).
+ *
+ * @param {string} val
+ * @returns {string}
+ */
+function formatEmploymentType(val) {
+  if (!val) return '';
+  if (val.includes('_')) {
+    const parts = val.split('_');
+    return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase() +
+      (parts.length > 1 ? '-' + parts.slice(1).join('-').toLowerCase() : '');
+  }
+  return val.charAt(0).toUpperCase() + val.slice(1);
+}
+
+/**
  * Normalizes a job item from the backend or mock fixture
  * into a consistent shape for UI components.
  *
@@ -21,14 +38,20 @@ export function normalizeJob(item) {
   const match = item.match;
   const isScored = match?.status === 'scored' && typeof match?.score === 'number';
 
+  const rawEmployment = item.employmentType || item.seniority || item.jobType || '';
+  const formattedEmployment = rawEmployment.includes('_')
+    ? formatEmploymentType(rawEmployment)
+    : rawEmployment;
+
   return {
     id: item.id,
     title: item.title || '',
     company: item.company || '',
     companyInitial: item.company?.[0]?.toUpperCase() || '',
     location: item.location || '',
-    workType: item.jobType || item.workType || '',
-    employmentType: item.seniority || item.employmentType || '',
+    jobType: item.jobType || '',
+    workType: item.workType || '',
+    employmentType: formattedEmployment,
     postedAt: item.postedAt || '',
     skills: Array.isArray(item.skills) ? item.skills : [],
     fit: isScored ? match.score : (typeof item.fit === 'number' ? item.fit : null),
@@ -77,8 +100,10 @@ export function filterJobs(jobs, filters) {
     }
 
     // Work type filter (case-insensitive comparison against job.workType)
-    if (Array.isArray(workTypes) && workTypes.length > 0) {
-      const jobWorkType = (job.workType || '').toLowerCase();
+    // Only apply workType filtering when active filters are present and the job defines a workType.
+    // When job.workType is missing/empty, bypass filtering so real API jobs are never rejected.
+    if (Array.isArray(workTypes) && workTypes.length > 0 && job.workType) {
+      const jobWorkType = job.workType.toLowerCase();
       const matchesWorkType = workTypes.some(
         (wt) => wt.toLowerCase() === jobWorkType
       );
@@ -113,6 +138,8 @@ export function filterJobs(jobs, filters) {
 
 /**
  * Fetches matched job listings from GET /api/jobs (or mock fixtures).
+ * If the real backend reports totalPages > 1, all remaining pages are fetched
+ * and combined before normalizing and client-side filtering.
  *
  * @param {object} [filters]
  * @returns {Promise<{ jobs: Array<object>, total: number }>}
@@ -123,10 +150,26 @@ export async function getMatches(filters) {
   if (USE_MOCK_JOBS) {
     normalized = MOCK_JOBS.map(normalizeJob);
   } else {
-    // Backend supports sort=best_fit and pageSize up to 50
-    const data = await request('/jobs?sort=best_fit&pageSize=50');
-    const rawJobs = Array.isArray(data?.jobs) ? data.jobs : [];
-    normalized = rawJobs.map(normalizeJob);
+    // Backend supports sort=best_fit, page, and pageSize up to 50
+    const page1Data = await request('/jobs?sort=best_fit&page=1&pageSize=50');
+    const allRawJobs = Array.isArray(page1Data?.jobs) ? [...page1Data.jobs] : [];
+    const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
+
+    // Fetch all remaining pages if multi-page results exist
+    if (totalPages > 1) {
+      const remainingPromises = [];
+      for (let p = 2; p <= totalPages; p += 1) {
+        remainingPromises.push(request(`/jobs?sort=best_fit&page=${p}&pageSize=50`));
+      }
+      const remainingPages = await Promise.all(remainingPromises);
+      for (const pageRes of remainingPages) {
+        if (Array.isArray(pageRes?.jobs)) {
+          allRawJobs.push(...pageRes.jobs);
+        }
+      }
+    }
+
+    normalized = allRawJobs.map(normalizeJob);
   }
 
   const filtered = filters ? filterJobs(normalized, filters) : normalized;
@@ -135,6 +178,17 @@ export async function getMatches(filters) {
     jobs: filtered,
     total: filtered.length,
   };
+}
+
+/**
+ * Fetches all matched jobs across pages before client-side filtering.
+ * Alias for getMatches to satisfy external callers.
+ *
+ * @param {object} [filters]
+ * @returns {Promise<{ jobs: Array<object>, total: number }>}
+ */
+export async function fetchJobs(filters) {
+  return getMatches(filters);
 }
 
 /**
