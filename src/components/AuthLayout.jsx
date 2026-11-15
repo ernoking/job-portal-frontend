@@ -98,7 +98,9 @@ export default function AuthLayout({
               <span className="auth-secure-icon">
                 <CheckIcon size={16} stroke={2.5} color="var(--olive)" />
               </span>
-              <span className="auth-secure-text">Your CV and personal data stay private and secure.</span>
+              <span className="auth-secure-text">
+                Your CV and personal data stay private and<br className="auth-secure-br" /> secure.
+              </span>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Pill from '../components/Pill';
@@ -10,6 +10,34 @@ import './Landing.css';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const stageRef = useRef(null);
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const updateScale = () => {
+      const width = el.offsetWidth;
+      if (width > 0 && window.innerWidth <= 600) {
+        const scale = width / 390;
+        el.style.setProperty('--s', String(scale));
+      } else {
+        el.style.removeProperty('--s');
+      }
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(() => {
+      updateScale();
+    });
+    observer.observe(el);
+
+    window.addEventListener('resize', updateScale);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, []);
 
   const handleScrollToWhy = (e) => {
     e.preventDefault();
@@ -114,95 +142,102 @@ export default function Landing() {
         </div>
 
         {/* Right Column: Stacked Match-Cards Composition */}
-        <div className="hero-right-col">
-          {/* Pale lime background disc */}
-          <div className="hero-backdrop-disc" aria-hidden="true" />
+        <div ref={stageRef} className="hero-right-col" aria-hidden="true">
+          <div className="hero-stage-canvas">
+            {/* Pale lime background disc */}
+            <div className="hero-backdrop-disc" aria-hidden="true" />
 
-          {/* Floating Badge 1 (Top Left) */}
-          <FloatingBadge
-            title="Grad opportunity"
-            subtitle="No experience required"
-            iconType="grad"
-            className="f-badge badge-top-left"
-          />
-
-          {/* Floating Badge 2 (Top Right) */}
-          <FloatingBadge
-            title="Meets comp target"
-            subtitle="Top 5% candidate"
-            iconType="sparkle"
-            className="f-badge badge-top-right"
-          />
-
-          {/* Floating Badge 3 (Mid Left) */}
-          <FloatingBadge
-            title="12 entry-level matches"
-            subtitle="Found today"
-            iconType="dot"
-            className="f-badge badge-mid-left"
-          />
-
-          {/* Floating Badge 4 (Bottom Right) */}
-          <FloatingBadge
-            title="Pivot mode active"
-            subtitle="8 transferable skills"
-            iconType="dot"
-            className="f-badge badge-bottom-right"
-          />
-
-          {/* Card A (Back Left) */}
-          <div className="card-wrapper card-a-wrap">
-            <MatchCard
-              cardKey="A"
-              company="PixelCraft Studio"
-              title="Junior Marketing Associate"
-              meta="Budapest · Hybrid · Entry-level"
-              score={80}
-              logoType="pixelcraft"
-              whyItems={[
-                'Marketing major coursework',
-                'Content creation',
-                'Collaborative team projects',
-              ]}
-              buildItems={['SEO optimization', 'Google Analytics']}
+            {/* Floating Badge 1 (Top Left) */}
+            <FloatingBadge
+              title="Grad opportunity"
+              subtitle="No experience required"
+              iconType="grad"
+              className="f-badge badge-top-left"
             />
-          </div>
 
-          {/* Card B (Back Right with 3D Tilt) */}
-          <div className="card-wrapper card-b-wrap">
-            <MatchCard
-              cardKey="B"
-              company="Apex Analytics"
-              title="Senior Product Manager"
-              meta="Debrecen · Remote · Full-time"
-              score={92}
-              logoType="apex"
-              whyItems={[
-                '8+ years Agile leadership',
-                'Product lifecycle & roadmap',
-                'B2B SaaS scaling',
-              ]}
-              buildItems={['AI model specification', 'SQL & analytics']}
+            {/* Floating Badge 2 (Top Right) */}
+            <FloatingBadge
+              title="Meets comp target"
+              subtitle="Top 5% candidate"
+              iconType="sparkle"
+              className="f-badge badge-top-right"
             />
-          </div>
 
-          {/* Card C (Front Card, on top of A & B) */}
-          <div className="card-wrapper card-c-wrap">
-            <MatchCard
-              cardKey="C"
-              company="Orbit SaaS"
-              title="UX Designer"
-              meta="Szeged · Hybrid · Full-time"
-              score={92}
-              logoType="orbit"
-              isFront
-              whyItems={[
-                'Visual design (Transferable)',
-                'Client collaboration',
-                'Creative problem-solving',
-              ]}
-              buildItems={['UX research methods', 'Interactive prototyping']}
+            {/* Floating Badge 3 (Mid Left) */}
+            <FloatingBadge
+              title="12 entry-level matches"
+              subtitle="Found today"
+              iconType="dot"
+              className="f-badge badge-mid-left"
             />
+
+            {/* Floating Badge 4 (Bottom Right) */}
+            <FloatingBadge
+              title={
+                <>
+                  <span className="badge-desktop-text">Pivot mode active</span>
+                  <span className="badge-mobile-text">Incognito mode active</span>
+                </>
+              }
+              subtitle="8 transferable skills"
+              iconType="dot"
+              className="f-badge badge-bottom-right"
+            />
+
+            {/* Card A (Back Left) */}
+            <div className="card-wrapper card-a-wrap">
+              <MatchCard
+                cardKey="A"
+                company="PixelCraft Studio"
+                title="Junior Marketing Associate"
+                meta="Budapest · Hybrid · Entry-level"
+                score={80}
+                logoType="pixelcraft"
+                whyItems={[
+                  'Marketing major coursework',
+                  'Content creation',
+                  'Collaborative team projects',
+                ]}
+                buildItems={['SEO optimization', 'Google Analytics']}
+              />
+            </div>
+
+            {/* Card B (Back Right with 3D Tilt) */}
+            <div className="card-wrapper card-b-wrap">
+              <MatchCard
+                cardKey="B"
+                company="Apex Analytics"
+                title="Senior Product Manager"
+                meta="Debrecen · Remote · Full-time"
+                score={92}
+                logoType="apex"
+                whyItems={[
+                  '8+ years Agile leadership',
+                  'Product lifecycle & roadmap',
+                  'B2B SaaS scaling',
+                ]}
+                buildItems={['AI model specification', 'SQL & analytics']}
+              />
+            </div>
+
+            {/* Card C (Front Card, on top of A & B) */}
+            <div className="card-wrapper card-c-wrap">
+              <MatchCard
+                cardKey="C"
+                company="Orbit SaaS"
+                title="UX Designer"
+                meta="Szeged · Hybrid · Full-time"
+                score={92}
+                logoType="orbit"
+                isFront
+                whyItems={[
+                  'Visual design (Transferable)',
+                  'Client collaboration',
+                  'Creative problem-solving',
+                ]}
+                buildItems={['UX research methods', 'Interactive prototyping']}
+              />
+            </div>
           </div>
         </div>
       </main>
@@ -216,7 +251,7 @@ export default function Landing() {
             <span className="dark-eyebrow">MATCH EXPLANATIONS, NOT GUESSES</span>
             <h2 className="dark-h2">Know why every job fits.</h2>
             <p className="dark-paragraph">
-              Matchwise compares your real experience with every role, then gives<br />
+              Matchwise compares your real experience with<br className="mobile-only-br" /> every role, then gives<br />
               you an honest, easy-to-understand fit score.
             </p>
 
@@ -250,7 +285,7 @@ export default function Landing() {
                 <div className="quality-bar-fill" style={{ width: '92%' }} />
               </div>
               <p className="quality-caption">
-                Excellent fit – your background aligns strongly with this role.
+                Excellent fit – your background aligns strongly with this<br className="mobile-only-br" /> role.
               </p>
             </div>
           </div>
@@ -268,7 +303,7 @@ export default function Landing() {
           </div>
 
           <p className="footer-center-text">
-            Matchwise helps job seekers spend less time searching and more time<br />
+            Matchwise helps job seekers spend less time searching<br className="mobile-only-br" /> and more time<br />
             moving forward.
           </p>
 
