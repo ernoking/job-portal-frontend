@@ -1,67 +1,160 @@
+import { request } from './http';
 import { MOCK_JOBS } from '../mocks/jobs';
 
 /**
- * Fetches matched job listings, optionally filtered.
- *
- * @param {object} [filters]
- * @param {string} [filters.keywords]
- * @param {string} [filters.location]
- * @param {string[]} [filters.workTypes]
- * @param {number} [filters.minMatch]
- * @returns {Promise<Array<object>>}
+ * Public configuration flag for Jobs endpoints.
+ * When VITE_USE_MOCK_JOBS === 'true', mock fixtures from mocks/jobs.js are used.
+ * By default (unset or anything else), the helpers call the real backend API
+ * at GET /api/jobs and GET /api/jobs/:id.
  */
-export async function getMatches(filters) {
-  // Mock implementation; backend endpoint can be wired when available
-  if (!filters) {
-    return [...MOCK_JOBS];
-  }
+export const USE_MOCK_JOBS = import.meta.env.VITE_USE_MOCK_JOBS === 'true';
 
-  const { keywords = '', location = '', workTypes = [], minMatch = 0 } = filters;
+/**
+ * Normalizes a job item from the backend or mock fixture
+ * into a consistent shape for UI components.
+ *
+ * @param {object} item
+ * @returns {object|null}
+ */
+export function normalizeJob(item) {
+  if (!item) return null;
+  const match = item.match;
+  const isScored = match?.status === 'scored' && typeof match?.score === 'number';
+
+  return {
+    id: item.id,
+    title: item.title || '',
+    company: item.company || '',
+    companyInitial: item.company?.[0]?.toUpperCase() || '',
+    location: item.location || '',
+    workType: item.jobType || item.workType || '',
+    employmentType: item.seniority || item.employmentType || '',
+    postedAt: item.postedAt || '',
+    skills: Array.isArray(item.skills) ? item.skills : [],
+    fit: isScored ? match.score : (typeof item.fit === 'number' ? item.fit : null),
+    whyMatch: Array.isArray(match?.matchedSkills) && match.matchedSkills.length > 0
+      ? match.matchedSkills
+      : (Array.isArray(item.whyMatch) ? item.whyMatch : []),
+    skillsToBuild: Array.isArray(match?.missingSkills) && match.missingSkills.length > 0
+      ? match.missingSkills
+      : (Array.isArray(item.skillsToBuild) ? item.skillsToBuild : []),
+    description: item.description || '',
+    aboutRole: item.description || item.aboutRole || '',
+    requirements: item.requirements || '',
+    url: item.url || '',
+  };
+}
+
+/**
+ * Filters a list of normalized jobs client-side according to active filters.
+ * Note: The backend GET /api/jobs only accepts sort, page, and pageSize query parameters;
+ * keywords, location, workType, and minMatch are filtered client-side.
+ * A role without a fit value is NOT excluded by the minimum-match filter.
+ *
+ * @param {Array<object>} jobs
+ * @param {object} [filters]
+ * @returns {Array<object>}
+ */
+export function filterJobs(jobs, filters) {
+  if (!filters || !Array.isArray(jobs)) return jobs || [];
+
+  const {
+    keywords = '',
+    location = '',
+    workTypes = [],
+    minMatch = 0,
+  } = filters;
+
   const kw = keywords.trim().toLowerCase();
   const loc = location.trim().toLowerCase();
 
-  const filtered = MOCK_JOBS.filter((job) => {
-    // Minimum match filter
-    if (typeof minMatch === 'number' && job.fit < minMatch) {
-      return false;
-    }
-
-    // Work type filter
-    if (Array.isArray(workTypes) && workTypes.length > 0) {
-      if (!workTypes.includes(job.workType)) {
+  return jobs.filter((job) => {
+    // Minimum match filter: roles without a numeric fit value are not excluded
+    if (typeof minMatch === 'number' && typeof job.fit === 'number') {
+      if (job.fit < minMatch) {
         return false;
       }
     }
 
-    // Location filter
-    if (loc && !job.location.toLowerCase().includes(loc)) {
-      return false;
+    // Work type filter (case-insensitive comparison against job.workType)
+    if (Array.isArray(workTypes) && workTypes.length > 0) {
+      const jobWorkType = (job.workType || '').toLowerCase();
+      const matchesWorkType = workTypes.some(
+        (wt) => wt.toLowerCase() === jobWorkType
+      );
+      if (!matchesWorkType) {
+        return false;
+      }
     }
 
-    // Keywords filter (title, company, whyMatch, skillsToBuild)
+    // Location filter (case-insensitive substring match)
+    if (loc) {
+      const jobLoc = (job.location || '').toLowerCase();
+      if (!jobLoc.includes(loc)) {
+        return false;
+      }
+    }
+
+    // Keywords filter (title, company, skills, whyMatch, skillsToBuild)
     if (kw) {
-      const matchTitle = job.title.toLowerCase().includes(kw);
-      const matchCompany = job.company.toLowerCase().includes(kw);
-      const matchWhy = Array.isArray(job.whyMatch) && job.whyMatch.some((w) => w.toLowerCase().includes(kw));
-      const matchSkills = Array.isArray(job.skillsToBuild) && job.skillsToBuild.some((s) => s.toLowerCase().includes(kw));
-      if (!matchTitle && !matchCompany && !matchWhy && !matchSkills) {
+      const inTitle = (job.title || '').toLowerCase().includes(kw);
+      const inCompany = (job.company || '').toLowerCase().includes(kw);
+      const inSkills = Array.isArray(job.skills) && job.skills.some((s) => s.toLowerCase().includes(kw));
+      const inWhy = Array.isArray(job.whyMatch) && job.whyMatch.some((w) => w.toLowerCase().includes(kw));
+      const inSkillsToBuild = Array.isArray(job.skillsToBuild) && job.skillsToBuild.some((s) => s.toLowerCase().includes(kw));
+      if (!inTitle && !inCompany && !inSkills && !inWhy && !inSkillsToBuild) {
         return false;
       }
     }
 
     return true;
   });
-
-  return filtered;
 }
 
 /**
- * Fetches full job details by ID.
+ * Fetches matched job listings from GET /api/jobs (or mock fixtures).
+ *
+ * @param {object} [filters]
+ * @returns {Promise<{ jobs: Array<object>, total: number }>}
+ */
+export async function getMatches(filters) {
+  let normalized;
+
+  if (USE_MOCK_JOBS) {
+    normalized = MOCK_JOBS.map(normalizeJob);
+  } else {
+    // Backend supports sort=best_fit and pageSize up to 50
+    const data = await request('/jobs?sort=best_fit&pageSize=50');
+    const rawJobs = Array.isArray(data?.jobs) ? data.jobs : [];
+    normalized = rawJobs.map(normalizeJob);
+  }
+
+  const filtered = filters ? filterJobs(normalized, filters) : normalized;
+
+  return {
+    jobs: filtered,
+    total: filtered.length,
+  };
+}
+
+/**
+ * Fetches full job details by ID from GET /api/jobs/:id (or mock fixtures).
  *
  * @param {string} jobId
  * @returns {Promise<object|null>}
  */
 export async function getMatchDetail(jobId) {
-  const match = MOCK_JOBS.find((j) => j.id === jobId);
-  return match || null;
+  if (USE_MOCK_JOBS) {
+    const match = MOCK_JOBS.find((j) => j.id === jobId);
+    return match ? normalizeJob(match) : null;
+  }
+
+  const res = await request(`/jobs/${encodeURIComponent(jobId)}`);
+  if (!res || !res.job) return null;
+
+  return normalizeJob({
+    ...res.job,
+    match: res.match,
+    application: res.application,
+  });
 }

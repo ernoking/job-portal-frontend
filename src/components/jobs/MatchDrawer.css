@@ -167,6 +167,57 @@
   line-height: 1.2;
 }
 
+/* Loading & Error States in Drawer */
+.match-drawer-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 30px;
+}
+
+.match-drawer-skeleton-bar {
+  background-color: var(--chip);
+  border-radius: 8px;
+  animation: pulseSkeleton 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseSkeleton {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+.match-drawer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+}
+
+.match-drawer-error-text {
+  font-family: var(--font-family);
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.match-drawer-retry-btn {
+  background-color: var(--lime);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.match-drawer-retry-btn:hover {
+  background-color: #d2f24b;
+}
+
 @media (max-width: 768px) {
   .match-drawer-panel {
     width: 100vw;

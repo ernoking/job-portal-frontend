@@ -3,8 +3,6 @@ import './FeaturedMatch.css';
 
 export default function FeaturedMatch({
   job,
-  isApplied,
-  onApply,
   onViewDetails,
 }) {
   if (!job) return null;
@@ -13,11 +11,11 @@ export default function FeaturedMatch({
     id,
     title,
     company,
-    companyInitial = company?.[0] || 'N',
+    companyInitial = company?.[0]?.toUpperCase() || '',
     location,
     workType,
-    employmentType = 'Full-time',
-    fit = 94,
+    employmentType = '',
+    fit,
     whyMatch = [],
     skillsToBuild = [],
   } = job;
@@ -26,62 +24,81 @@ export default function FeaturedMatch({
     .filter(Boolean)
     .join(' · ');
 
+  const hasScore = typeof fit === 'number' && !Number.isNaN(fit);
+  const hasWhyMatch = Array.isArray(whyMatch) && whyMatch.length > 0;
+  const hasSkillsToBuild = Array.isArray(skillsToBuild) && skillsToBuild.length > 0;
+  const hasPanels = hasWhyMatch || hasSkillsToBuild;
+
   return (
-    <article className="featured-match-card" aria-label={`Featured match: ${title} at ${company}`} data-testid="featured-match-card">
+    <article
+      className="featured-match-card"
+      aria-label={`Featured match: ${title} at ${company}${hasScore ? `, ${fit}% match` : ''}`}
+      data-testid="featured-match-card"
+    >
       {/* 61px top gap positioning for eyebrow */}
       <div className="featured-eyebrow">YOUR TOP MATCH</div>
 
       {/* Main Identity Row */}
       <div className="featured-identity-row">
         <div className="featured-company-info">
-          <div className="featured-logo-tile" aria-hidden="true">
-            {companyInitial}
-          </div>
+          {companyInitial && (
+            <div className="featured-logo-tile" aria-hidden="true">
+              {companyInitial}
+            </div>
+          )}
           <div className="featured-titles">
             <span className="featured-company-name">{company}</span>
             <h2 className="featured-role-title">{title}</h2>
-            <p className="featured-meta">{metaString}</p>
+            {metaString && <p className="featured-meta">{metaString}</p>}
           </div>
         </div>
 
-        {/* Circular fit gauge */}
-        <div className="featured-fit-gauge">
-          <ScoreRing score={fit} size={70} strokeWidth={5} />
-        </div>
+        {/* Circular fit gauge - rendered only if fit score is present */}
+        {hasScore && (
+          <div className="featured-fit-gauge" data-testid="featured-fit-gauge">
+            <ScoreRing score={fit} size={70} strokeWidth={5} />
+          </div>
+        )}
       </div>
 
-      {/* Highlight Panels Row */}
-      <div className="featured-panels-row">
-        {/* Why you match */}
-        <div className="featured-panel">
-          <h3 className="featured-panel-title">Why you match</h3>
-          <ul className="featured-panel-list">
-            {whyMatch.map((item, idx) => (
-              <li key={idx} className="featured-panel-item why-match-item">
-                <span className="panel-item-icon check-icon" aria-hidden="true">
-                  ✓
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Highlight Panels Row - rendered only if panels exist */}
+      {hasPanels && (
+        <div className="featured-panels-row">
+          {/* Why you match */}
+          {hasWhyMatch && (
+            <div className="featured-panel">
+              <h3 className="featured-panel-title">Why you match</h3>
+              <ul className="featured-panel-list">
+                {whyMatch.map((item, idx) => (
+                  <li key={idx} className="featured-panel-item why-match-item">
+                    <span className="panel-item-icon check-icon" aria-hidden="true">
+                      ✓
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-        {/* Skills to build */}
-        <div className="featured-panel">
-          <h3 className="featured-panel-title">Skills to build</h3>
-          <ul className="featured-panel-list">
-            {skillsToBuild.map((item, idx) => (
-              <li key={idx} className="featured-panel-item skills-item">
-                <span className="panel-item-icon plus-icon" aria-hidden="true">
-                  +
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          {/* Skills to build */}
+          {hasSkillsToBuild && (
+            <div className="featured-panel">
+              <h3 className="featured-panel-title">Skills to build</h3>
+              <ul className="featured-panel-list">
+                {skillsToBuild.map((item, idx) => (
+                  <li key={idx} className="featured-panel-item skills-item">
+                    <span className="panel-item-icon plus-icon" aria-hidden="true">
+                      +
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Footer Row */}
       <div className="featured-footer-row">
@@ -94,14 +111,17 @@ export default function FeaturedMatch({
           View full match →
         </button>
 
+        {/* Apply now is disabled until backend application submission is wired up */}
         <button
           type="button"
-          className={`featured-apply-btn ${isApplied ? 'is-applied' : ''}`}
-          disabled={isApplied}
-          onClick={() => onApply(job)}
+          className="featured-apply-btn is-disabled"
+          aria-disabled="true"
+          title="Applying isn't available yet"
+          onClick={(e) => e.preventDefault()}
           data-testid="featured-apply-btn"
         >
-          {isApplied ? 'Applied ✓' : 'Apply now'}
+          <span>Apply now</span>
+          <span className="sr-only">Applying isn't available yet</span>
         </button>
       </div>
     </article>

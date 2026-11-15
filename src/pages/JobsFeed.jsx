@@ -5,13 +5,7 @@ import FilterSidebar from '../components/jobs/FilterSidebar';
 import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
-import { MOCK_JOBS } from '../mocks/jobs';
-import {
-  isJobApplied,
-  applyToJob,
-  subscribe as subscribeApplications,
-} from '../applications/applicationsStore';
-import { useAuth } from '../auth';
+import { getMatches, getMatchDetail, filterJobs } from '../api/jobs';
 import './JobsFeed.css';
 
 const INITIAL_FILTERS = {
@@ -22,122 +16,135 @@ const INITIAL_FILTERS = {
 };
 
 export default function JobsFeed() {
-  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filters state & interaction tracking
+  // Filters state starts with the displayed defaults immediately (Finding [P2])
   const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const [hasInteracted, setHasInteracted] = useState(false);
 
-  // Store subscription trigger
-  const [, setStoreTick] = useState(0);
+  // Feed data loading states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [allJobs, setAllJobs] = useState([]);
 
-  // Derive active drawer job from URL query parameter
+  // Drawer detail states
   const jobParam = searchParams.get('job');
-  const activeJob = useMemo(() => {
-    if (!jobParam) return null;
-    return MOCK_JOBS.find((j) => j.id === jobParam) || null;
-  }, [jobParam]);
+  const [activeJob, setActiveJob] = useState(null);
+  const [drawerError, setDrawerError] = useState(null);
+  const isDrawerLoading = Boolean(jobParam && !activeJob && !drawerError);
 
-  // Subscribe to applications store changes
+  // Fetch all open jobs on mount
   useEffect(() => {
-    const unsubscribe = subscribeApplications(() => {
-      setStoreTick((prev) => prev + 1);
-    });
-    return unsubscribe;
+    let isMounted = true;
+    getMatches()
+      .then((res) => {
+        if (isMounted) {
+          const list = Array.isArray(res) ? res : (res?.jobs || []);
+          setAllJobs(list);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err?.message || 'Unable to load jobs. Please try again.');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Clean up invalid ?job deep-links gracefully without crashing
+  const handleRetry = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    getMatches()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res?.jobs || []);
+        setAllJobs(list);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err?.message || 'Unable to load jobs. Please try again.');
+        setLoading(false);
+      });
+  }, []);
+
+  // Filter jobs client-side from the initial render onwards
+  const filteredJobs = useMemo(() => {
+    return filterJobs(allJobs, filters);
+  }, [allJobs, filters]);
+
+  const featuredJob = filteredJobs[0] || null;
+  // First role as featured, next two as more strong matches
+  const moreJobs = filteredJobs.slice(1, 3);
+
+  // Fetch drawer job detail when ?job=<id> is in URL
+  const fetchDrawerDetail = useCallback(
+    (id) => {
+      if (!id) return;
+      getMatchDetail(id)
+        .then((detail) => {
+          if (!detail) {
+            // Missing/not found: close drawer and clean query param
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('job');
+            setSearchParams(nextParams, { replace: true });
+            setActiveJob(null);
+          } else {
+            setActiveJob(detail);
+          }
+        })
+        .catch((err) => {
+          if (err?.status === 404) {
+            // 404 closes drawer and removes parameter
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('job');
+            setSearchParams(nextParams, { replace: true });
+            setActiveJob(null);
+          } else {
+            setDrawerError(err?.message || 'Unable to load this job. Please try again.');
+          }
+        });
+    },
+    [searchParams, setSearchParams]
+  );
+
   useEffect(() => {
-    if (jobParam && !activeJob) {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('job');
-      setSearchParams(nextParams, { replace: true });
+    if (jobParam) {
+      fetchDrawerDetail(jobParam);
     }
-  }, [jobParam, activeJob, searchParams, setSearchParams]);
+  }, [jobParam, fetchDrawerDetail]);
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-    setHasInteracted(true);
   }, []);
 
   const handleResetFilters = useCallback(() => {
     setFilters(INITIAL_FILTERS);
-    setHasInteracted(false);
   }, []);
 
-  // Filtered jobs list
-  const filteredJobs = useMemo(() => {
-    // Decision #1: On initial untouched load, show all 24 ranked roles per design
-    if (!hasInteracted) {
-      return MOCK_JOBS;
-    }
-
-    const kw = filters.keywords.trim().toLowerCase();
-    const loc = filters.location.trim().toLowerCase();
-
-    return MOCK_JOBS.filter((job) => {
-      // Minimum match score
-      if (job.fit < filters.minMatch) {
-        return false;
-      }
-
-      // Work type
-      if (filters.workTypes.length > 0 && !filters.workTypes.includes(job.workType)) {
-        return false;
-      }
-
-      // Location substring match
-      if (loc && !job.location.toLowerCase().includes(loc)) {
-        return false;
-      }
-
-      // Keyword match
-      if (kw) {
-        const inTitle = job.title.toLowerCase().includes(kw);
-        const inCompany = job.company.toLowerCase().includes(kw);
-        const inWhy = job.whyMatch?.some((w) => w.toLowerCase().includes(kw));
-        const inSkills = job.skillsToBuild?.some((s) => s.toLowerCase().includes(kw));
-        if (!inTitle && !inCompany && !inWhy && !inSkills) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [filters, hasInteracted]);
-
-  const featuredJob = filteredJobs[0] || null;
-  const moreJobs = filteredJobs.slice(1);
-
-  // Drawer handlers
+  // Drawer open / close handlers
   const handleOpenDrawer = useCallback(
     (jobId) => {
+      if (activeJob?.id !== jobId) {
+        setActiveJob(null);
+        setDrawerError(null);
+      }
       const nextParams = new URLSearchParams(searchParams);
       nextParams.set('job', jobId);
       setSearchParams(nextParams);
     },
-    [searchParams, setSearchParams]
+    [activeJob?.id, searchParams, setSearchParams]
   );
 
   const handleCloseDrawer = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('job');
     setSearchParams(nextParams);
+    setActiveJob(null);
+    setDrawerError(null);
   }, [searchParams, setSearchParams]);
-
-  // Apply handler
-  const handleApply = useCallback(
-    (job) => {
-      if (!job) return;
-      applyToJob(user?.id, job);
-    },
-    [user?.id]
-  );
-
-  const isFeaturedApplied = featuredJob
-    ? isJobApplied(user?.id, featuredJob.id)
-    : false;
 
   return (
     <div className="jobs-feed-page">
@@ -159,7 +166,7 @@ export default function JobsFeed() {
               <div className="jobs-feed-title-row">
                 <h1 className="jobs-feed-title">Your top matches</h1>
                 <span className="jobs-feed-count" data-testid="jobs-feed-count">
-                  {filteredJobs.length} roles found
+                  {filteredJobs.length} {filteredJobs.length === 1 ? 'role found' : 'roles found'}
                 </span>
               </div>
               <p className="jobs-feed-subtitle">
@@ -167,15 +174,35 @@ export default function JobsFeed() {
               </p>
             </header>
 
-            {filteredJobs.length === 0 ? (
-              /* Edge Case #1: Friendly Empty State */
+            {loading ? (
+              /* Loading Skeleton */
+              <div className="jobs-feed-loading" data-testid="jobs-feed-loading">
+                <div className="jobs-feed-skeleton-card" />
+                <div className="jobs-feed-skeleton-row" />
+                <div className="jobs-feed-skeleton-row" />
+              </div>
+            ) : error ? (
+              /* Error State with Try Again */
+              <div className="jobs-feed-error" data-testid="jobs-feed-error">
+                <p className="jobs-feed-error-text">{error}</p>
+                <button
+                  type="button"
+                  className="jobs-feed-retry-btn"
+                  onClick={handleRetry}
+                  data-testid="jobs-feed-retry-btn"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              /* Empty State */
               <div className="jobs-feed-empty" data-testid="jobs-feed-empty">
                 <div className="jobs-feed-empty-icon" aria-hidden="true">
                   🔍
                 </div>
-                <h3 className="jobs-feed-empty-title">No matches found</h3>
+                <h3 className="jobs-feed-empty-title">No roles match these filters.</h3>
                 <p className="jobs-feed-empty-text">
-                  No matches found for your criteria. Try loosening your filters or expanding your location.
+                  Try loosening your filters or expanding your location.
                 </p>
                 <button
                   type="button"
@@ -192,8 +219,6 @@ export default function JobsFeed() {
                 {featuredJob && (
                   <FeaturedMatch
                     job={featuredJob}
-                    isApplied={isFeaturedApplied}
-                    onApply={handleApply}
                     onViewDetails={handleOpenDrawer}
                   />
                 )}
@@ -222,8 +247,11 @@ export default function JobsFeed() {
       {/* View full match drawer */}
       <MatchDrawer
         job={activeJob}
-        isOpen={Boolean(activeJob)}
+        isOpen={Boolean(jobParam)}
+        isLoading={isDrawerLoading}
+        error={drawerError}
         onClose={handleCloseDrawer}
+        onRetry={() => fetchDrawerDetail(jobParam)}
       />
     </div>
   );
