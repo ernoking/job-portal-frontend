@@ -145,7 +145,11 @@ export default function Register() {
       leftCardContent={stepsList}
       pillText="START MATCHING TODAY"
       h1Content={<>Create your free<br />account</>}
-      subContent={<>Upload your CV and see your strongest job matches in<br />minutes.</>}
+      subContent={
+        <>
+          Upload your CV and see your strongest job<br className="mobile-only-br" /> matches in<br />minutes.
+        </>
+      }
     >
       <form onSubmit={handleSubmit} noValidate className="register-form">
         {/* Name row */}

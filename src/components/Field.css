@@ -69,3 +69,11 @@
 .field-error-msg + .field-hint {
   margin-top: 4px;
 }
+
+@media (max-width: 600px) {
+  .field-input {
+    background-color: #F7F7F3;
+    border-radius: 10px;
+    padding: 0 17px;
+  }
+}
