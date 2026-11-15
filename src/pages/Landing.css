@@ -688,6 +688,7 @@
 
   /* 3.3 Card collage ("stage") */
   .hero-right-col {
+    flex: none;
     margin: 18px -16px 0 -16px;
     width: calc(100% + 32px);
     height: calc(1010px * var(--s, 1));
