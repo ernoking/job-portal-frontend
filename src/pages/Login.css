@@ -232,7 +232,7 @@
   line-height: 1.3;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .auth-login .auth-h1 {
     font-size: 35px;
     line-height: 40px;

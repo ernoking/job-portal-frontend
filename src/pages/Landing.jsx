@@ -251,8 +251,7 @@ export default function Landing() {
             <span className="dark-eyebrow">MATCH EXPLANATIONS, NOT GUESSES</span>
             <h2 className="dark-h2">Know why every job fits.</h2>
             <p className="dark-paragraph">
-              Matchwise compares your real experience with<br className="mobile-only-br" /> every role, then gives<br />
-              you an honest, easy-to-understand fit score.
+              Matchwise compares your real experience with every role, then gives you an honest, easy-to-understand fit score.
             </p>
 
             <ul className="dark-checklist">
@@ -285,7 +284,7 @@ export default function Landing() {
                 <div className="quality-bar-fill" style={{ width: '92%' }} />
               </div>
               <p className="quality-caption">
-                Excellent fit – your background aligns strongly with this<br className="mobile-only-br" /> role.
+                Excellent fit – your background aligns strongly with this role.
               </p>
             </div>
           </div>

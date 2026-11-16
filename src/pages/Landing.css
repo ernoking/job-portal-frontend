@@ -482,7 +482,7 @@
   }
 }
 
-@media (max-width: 1279px) and (min-width: 601px) {
+@media (max-width: 1279px) and (min-width: 769px) {
   .landing-header {
     height: auto;
     padding: 20px;
@@ -536,7 +536,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .mobile-only-br {
     display: inline;
   }
@@ -809,11 +809,15 @@
   .landing-dark-section {
     width: calc(100% - 25px);
     max-width: 365px;
-    min-height: 542px;
+    height: auto;
+    min-height: auto;
     margin: 10px auto 0;
-    padding: 31px 20px 25px;
+    padding: 30px 20px 28px;
+    padding-top: clamp(28px, 6vw, 32px);
+    padding-bottom: 28px;
     border-radius: 24px;
     box-sizing: border-box;
+    display: block;
   }
 
   .dark-inner {
@@ -844,7 +848,7 @@
     color: #FFFFFF;
     letter-spacing: -0.007em;
     margin: 0 0 16px 0;
-    max-width: 329px;
+    max-width: none;
     width: auto;
   }
 
@@ -853,6 +857,7 @@
     line-height: 26px;
     color: var(--on-dark-muted);
     margin: 0 0 24px 0;
+    max-width: none;
   }
 
   .dark-checklist {
@@ -891,11 +896,12 @@
   .match-quality-card {
     width: 100%;
     max-width: 337px;
-    min-height: 212px;
+    height: auto;
+    min-height: auto;
     background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    padding: 25px 25px 22px 25px;
+    padding: 22px 20px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -910,9 +916,9 @@
   }
 
   .quality-score {
-    font-size: 62px;
-    line-height: 1;
-    font-weight: 500;
+    font-size: clamp(2.75rem, 11vw, 3.5rem);
+    line-height: 1.05;
+    font-weight: 700;
     color: var(--lime);
     letter-spacing: -0.02em;
     margin-bottom: 14px;
@@ -922,7 +928,7 @@
 
   .quality-bar-track {
     width: 100%;
-    max-width: 288px;
+    max-width: none;
     height: 5px;
     background-color: rgba(255, 255, 255, 0.12);
     border-radius: 999px;
@@ -937,11 +943,10 @@
   }
 
   .quality-caption {
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 13px;
+    line-height: 1.45;
     color: var(--on-dark-muted);
     margin: 0;
-    margin-left: -15px;
   }
 
   /* 3.5 Footer */
