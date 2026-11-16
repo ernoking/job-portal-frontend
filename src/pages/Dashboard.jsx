@@ -1,5 +1,5 @@
 import React from 'react';
-import Logo from '../components/Logo';
+import BrandLogo from '../components/BrandLogo';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
       padding: '40px',
       textAlign: 'center',
     }}>
-      <Logo variant="light" size="large" to="/" />
+      <BrandLogo variant="light" size="large" to="/" />
       <h1 style={{
         fontSize: '36px',
         fontWeight: 600,

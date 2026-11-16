@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import BrandLogo from '../Logo';
 import { useAuth } from '../../auth';
 import './AppNav.css';
 
@@ -74,26 +75,7 @@ export default function AppNav({ activeTab }) {
     <header className="app-nav" data-testid="app-nav">
       <div className="app-nav-inner">
         {/* Left: Brand Logo & Wordmark */}
-        <Link to="/matches" className="app-nav-brand" aria-label="Matchwise home">
-          <div className="app-nav-logo-tile" aria-hidden="true">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="app-nav-sparkle"
-            >
-              <path
-                d="M12 2C12 7.5 7.5 12 2 12C7.5 12 12 16.5 12 22C12 16.5 16.5 12 22 12C16.5 12 12 7.5 12 2Z"
-                fill="var(--lime)"
-              />
-            </svg>
-          </div>
-          <span className="app-nav-wordmark">
-            <span className="app-nav-match">Match</span>
-            <span className="app-nav-wise">wise</span>
-          </span>
-        </Link>
+        <BrandLogo to="/matches" className="app-nav-brand" data-testid="app-nav-brand" />
 
         {/* Center: Tabs */}
         <nav className="app-nav-tabs" aria-label="Primary navigation">

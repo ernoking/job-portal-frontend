@@ -2,15 +2,32 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Logo.css';
 
-export default function Logo({ variant = 'light', size = 'normal', to = '/' }) {
+export function BrandLogo({
+  variant = 'light',
+  size = 'normal',
+  to = '/',
+  className = '',
+  'data-testid': testId,
+}) {
   const isDark = variant === 'dark';
   const isLarge = size === 'large';
+  const isCompact = size === 'compact' || size === 'small';
 
-  const content = (
-    <div className={`logo-container ${isDark ? 'logo-dark' : 'logo-light'} ${isLarge ? 'logo-large' : ''}`}>
-      <div className="logo-icon-wrap">
+  const container = (
+    <div
+      className={`logo-container ${isDark ? 'logo-dark' : 'logo-light'} ${
+        isLarge ? 'logo-large' : isCompact ? 'logo-compact' : ''
+      }`.trim()}
+    >
+      <div className="logo-icon-wrap" aria-hidden="true">
         <div className="logo-square">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="logo-glyph">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="logo-glyph"
+          >
             {/* Outer ring with gap and chevron/arrow notch on the right */}
             <path
               d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12C21 10.9 20.8 9.85 20.44 8.88"
@@ -37,11 +54,26 @@ export default function Logo({ variant = 'light', size = 'normal', to = '/' }) {
 
   if (to) {
     return (
-      <Link to={to} className="logo-link" aria-label="Matchwise home">
-        {content}
+      <Link
+        to={to}
+        className={`logo-link ${className}`.trim()}
+        aria-label="Matchwise home"
+        data-testid={testId}
+      >
+        {container}
       </Link>
     );
   }
 
-  return content;
+  return (
+    <div
+      className={`logo-link-static ${className}`.trim()}
+      data-testid={testId}
+    >
+      {container}
+    </div>
+  );
 }
+
+export const Logo = BrandLogo;
+export default BrandLogo;

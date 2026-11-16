@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Logo from './Logo';
+import BrandLogo from './BrandLogo';
 import { ArrowLeft, CheckIcon } from './Icons';
 import './AuthLayout.css';
 
@@ -35,7 +35,7 @@ export default function AuthLayout({
 
         {/* Top Logo */}
         <header className="auth-left-header">
-          <Logo variant="dark" size="large" to="/" />
+          <BrandLogo variant="dark" size="large" to="/" />
         </header>
 
         {/* Vertically centered left content */}

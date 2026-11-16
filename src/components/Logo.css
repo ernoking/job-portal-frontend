@@ -2,6 +2,12 @@
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+  cursor: pointer;
+}
+
+.logo-link-static {
+  display: inline-flex;
+  align-items: center;
 }
 
 .logo-container {
@@ -15,6 +21,7 @@
   position: relative;
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
 }
 
 .logo-square {
@@ -25,6 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .logo-glyph {
@@ -54,10 +62,27 @@
   letter-spacing: -0.02em;
   display: flex;
   align-items: baseline;
+  white-space: nowrap;
 }
 
 .logo-large .logo-text {
   font-size: 22px;
+}
+
+.logo-compact .logo-icon-wrap,
+.logo-compact .logo-square {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.logo-compact .logo-glyph {
+  width: 20px;
+  height: 20px;
+}
+
+.logo-compact .logo-text {
+  font-size: 18px;
 }
 
 .logo-light .logo-match {
