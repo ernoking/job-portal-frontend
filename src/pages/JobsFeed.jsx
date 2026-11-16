@@ -13,6 +13,7 @@ import {
   retryFailedPages,
   USE_MOCK_JOBS,
 } from '../api/jobs';
+import { flattenJobPages } from '../api/jobPages.js';
 import './JobsFeed.css';
 
 const INITIAL_FILTERS = {
@@ -31,7 +32,7 @@ export default function JobsFeed() {
   // Feed data loading states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [allJobs, setAllJobs] = useState([]);
+  const [jobPages, setJobPages] = useState({});
 
   // Pagination & Catalogue metadata
   const [paginationMeta, setPaginationMeta] = useState({
@@ -58,8 +59,7 @@ export default function JobsFeed() {
     getMatches()
       .then((res) => {
         if (isMounted) {
-          const list = Array.isArray(res) ? res : (res?.allJobs || res?.jobs || []);
-          setAllJobs(list);
+          setJobPages(res.pages);
           if (res && typeof res === 'object' && 'isIncomplete' in res) {
             setPaginationMeta({
               totalPages: res.totalPages || 1,
@@ -90,8 +90,7 @@ export default function JobsFeed() {
     setPageActionError(null);
     getMatches()
       .then((res) => {
-        const list = Array.isArray(res) ? res : (res?.allJobs || res?.jobs || []);
-        setAllJobs(list);
+        setJobPages(res.pages);
         if (res && typeof res === 'object' && 'isIncomplete' in res) {
           setPaginationMeta({
             totalPages: res.totalPages || 1,
@@ -116,11 +115,7 @@ export default function JobsFeed() {
 
     try {
       const res = await fetchMorePages(paginationMeta.nextPageToLoad, paginationMeta.totalPages);
-      setAllJobs((prev) => {
-        const seen = new Set(prev.map((j) => j.id));
-        const additions = res.jobs.filter((j) => !seen.has(j.id));
-        return [...prev, ...additions];
-      });
+      setJobPages((prev) => ({ ...prev, ...res.pages }));
 
       setPaginationMeta((prev) => {
         const combinedLoaded = Array.from(new Set([...prev.loadedPages, ...res.loadedPages])).sort((a, b) => a - b);
@@ -148,11 +143,7 @@ export default function JobsFeed() {
 
     try {
       const res = await retryFailedPages(paginationMeta.failedPages);
-      setAllJobs((prev) => {
-        const seen = new Set(prev.map((j) => j.id));
-        const additions = res.jobs.filter((j) => !seen.has(j.id));
-        return [...prev, ...additions];
-      });
+      setJobPages((prev) => ({ ...prev, ...res.pages }));
 
       setPaginationMeta((prev) => {
         const recoveredSet = new Set(res.recoveredPages);
@@ -176,8 +167,8 @@ export default function JobsFeed() {
 
   // Filter jobs client-side from the initial render onwards
   const filteredJobs = useMemo(() => {
-    return filterJobs(allJobs, filters);
-  }, [allJobs, filters]);
+    return filterJobs(flattenJobPages(jobPages), filters);
+  }, [jobPages, filters]);
 
   const featuredJob = filteredJobs[0] || null;
   const remainingJobs = filteredJobs.slice(1);

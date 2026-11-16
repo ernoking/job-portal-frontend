@@ -1,5 +1,6 @@
 import { request } from './http';
 import { MOCK_JOBS } from '../mocks/jobs';
+import { flattenJobPages } from './jobPages.js';
 
 /**
  * Public configuration flag for Jobs endpoints.
@@ -23,14 +24,14 @@ export const MAX_PAGES_TO_FETCH = 5;
  * @param {number} totalPages
  * @param {number} [maxPagesToFetch=MAX_PAGES_TO_FETCH]
  * @returns {Promise<{
- *   jobs: Array<object>,
+ *   pages: Record<number, Array<object>>,
  *   loadedPages: Array<number>,
  *   failedPages: Array<number>,
  *   nextPageToLoad: number|null
  * }>}
  */
 export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MAX_PAGES_TO_FETCH) {
-  const rawJobs = [];
+  const pages = {};
   const loadedPages = [];
   const failedPages = [];
 
@@ -39,9 +40,7 @@ export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MA
   for (let p = startPage; p <= endPage; p += 1) {
     try {
       const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
-      if (Array.isArray(res?.jobs)) {
-        rawJobs.push(...res.jobs);
-      }
+      pages[p] = (Array.isArray(res?.jobs) ? res.jobs : []).map(normalizeJob);
       loadedPages.push(p);
     } catch (err) {
       console.warn(`[jobsApi] Failed to fetch page ${p} of ${totalPages}:`, err);
@@ -52,7 +51,7 @@ export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MA
   const nextPageToLoad = endPage < totalPages ? endPage + 1 : null;
 
   return {
-    jobs: rawJobs.map(normalizeJob),
+    pages,
     loadedPages,
     failedPages,
     nextPageToLoad,
@@ -64,22 +63,20 @@ export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MA
  *
  * @param {Array<number>} pagesToRetry
  * @returns {Promise<{
- *   jobs: Array<object>,
+ *   pages: Record<number, Array<object>>,
  *   recoveredPages: Array<number>,
  *   stillFailedPages: Array<number>
  * }>}
  */
 export async function retryFailedPages(pagesToRetry = []) {
-  const rawJobs = [];
+  const pages = {};
   const recoveredPages = [];
   const stillFailedPages = [];
 
   for (const p of pagesToRetry) {
     try {
       const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
-      if (Array.isArray(res?.jobs)) {
-        rawJobs.push(...res.jobs);
-      }
+      pages[p] = (Array.isArray(res?.jobs) ? res.jobs : []).map(normalizeJob);
       recoveredPages.push(p);
     } catch (err) {
       console.warn(`[jobsApi] Retry failed for page ${p}:`, err);
@@ -88,7 +85,7 @@ export async function retryFailedPages(pagesToRetry = []) {
   }
 
   return {
-    jobs: rawJobs.map(normalizeJob),
+    pages,
     recoveredPages,
     stillFailedPages,
   };
@@ -234,12 +231,12 @@ export function filterJobs(jobs, filters) {
  * already collected rather than failing the entire feed.
  *
  * Returns structured metadata alongside the jobs array:
- * { jobs, allJobs, total, totalPages, loadedPages, failedPages, nextPageToLoad, isIncomplete }
+ * { jobs, pages, total, totalPages, loadedPages, failedPages, nextPageToLoad, isIncomplete }
  *
  * @param {object} [filters]
  * @returns {Promise<{
  *   jobs: Array<object>,
- *   allJobs: Array<object>,
+ *   pages: Record<number, Array<object>>,
  *   total: number,
  *   totalPages: number,
  *   loadedPages: Array<number>,
@@ -254,7 +251,7 @@ export async function getMatches(filters) {
     const filtered = filters ? filterJobs(normalized, filters) : normalized;
     return {
       jobs: filtered,
-      allJobs: normalized,
+      pages: { 1: normalized },
       total: filtered.length,
       totalPages: 1,
       loadedPages: [1],
@@ -266,45 +263,22 @@ export async function getMatches(filters) {
 
   // Backend supports sort=best_fit, page, and pageSize up to 50
   const page1Data = await request('/jobs?sort=best_fit&page=1&pageSize=50');
-  const allRawJobs = Array.isArray(page1Data?.jobs) ? [...page1Data.jobs] : [];
+  const firstPage = (Array.isArray(page1Data?.jobs) ? page1Data.jobs : []).map(normalizeJob);
   const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
-
-  const loadedPages = [1];
-  const failedPages = [];
-
-  // Fetch remaining pages sequentially up to MAX_PAGES_TO_FETCH
-  if (totalPages > 1) {
-    const maxPages = Math.min(totalPages, MAX_PAGES_TO_FETCH);
-    for (let p = 2; p <= maxPages; p += 1) {
-      try {
-        const pageRes = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
-        if (Array.isArray(pageRes?.jobs)) {
-          allRawJobs.push(...pageRes.jobs);
-        }
-        loadedPages.push(p);
-      } catch (pageErr) {
-        console.warn(`[getMatches] Failed to fetch page ${p} of ${totalPages}:`, pageErr);
-        failedPages.push(p);
-      }
-    }
-  }
-
-  const normalized = allRawJobs.map(normalizeJob);
+  const rest = await fetchMorePages(2, totalPages, MAX_PAGES_TO_FETCH - 1);
+  const pages = { 1: firstPage, ...rest.pages };
+  const normalized = flattenJobPages(pages);
   const filtered = filters ? filterJobs(normalized, filters) : normalized;
-
-  const lastAttemptedPage = Math.min(totalPages, MAX_PAGES_TO_FETCH);
-  const nextPageToLoad = lastAttemptedPage < totalPages ? lastAttemptedPage + 1 : null;
-  const isIncomplete = failedPages.length > 0 || nextPageToLoad !== null;
 
   return {
     jobs: filtered,
-    allJobs: normalized,
+    pages,
     total: filtered.length,
     totalPages,
-    loadedPages,
-    failedPages,
-    nextPageToLoad,
-    isIncomplete,
+    loadedPages: [1, ...rest.loadedPages],
+    failedPages: rest.failedPages,
+    nextPageToLoad: rest.nextPageToLoad,
+    isIncomplete: rest.failedPages.length > 0 || rest.nextPageToLoad !== null,
   };
 }
 
