@@ -16,6 +16,85 @@ export const USE_MOCK_JOBS = import.meta.env.VITE_USE_MOCK_JOBS === 'true';
 export const MAX_PAGES_TO_FETCH = 5;
 
 /**
+ * Fetches a batch of pages sequentially from startPage up to totalPages,
+ * capped at maxPagesToFetch.
+ *
+ * @param {number} startPage
+ * @param {number} totalPages
+ * @param {number} [maxPagesToFetch=MAX_PAGES_TO_FETCH]
+ * @returns {Promise<{
+ *   jobs: Array<object>,
+ *   loadedPages: Array<number>,
+ *   failedPages: Array<number>,
+ *   nextPageToLoad: number|null
+ * }>}
+ */
+export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MAX_PAGES_TO_FETCH) {
+  const rawJobs = [];
+  const loadedPages = [];
+  const failedPages = [];
+
+  const endPage = Math.min(startPage + maxPagesToFetch - 1, totalPages);
+
+  for (let p = startPage; p <= endPage; p += 1) {
+    try {
+      const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+      if (Array.isArray(res?.jobs)) {
+        rawJobs.push(...res.jobs);
+      }
+      loadedPages.push(p);
+    } catch (err) {
+      console.warn(`[jobsApi] Failed to fetch page ${p} of ${totalPages}:`, err);
+      failedPages.push(p);
+    }
+  }
+
+  const nextPageToLoad = endPage < totalPages ? endPage + 1 : null;
+
+  return {
+    jobs: rawJobs.map(normalizeJob),
+    loadedPages,
+    failedPages,
+    nextPageToLoad,
+  };
+}
+
+/**
+ * Retries fetching specific failed pages sequentially.
+ *
+ * @param {Array<number>} pagesToRetry
+ * @returns {Promise<{
+ *   jobs: Array<object>,
+ *   recoveredPages: Array<number>,
+ *   stillFailedPages: Array<number>
+ * }>}
+ */
+export async function retryFailedPages(pagesToRetry = []) {
+  const rawJobs = [];
+  const recoveredPages = [];
+  const stillFailedPages = [];
+
+  for (const p of pagesToRetry) {
+    try {
+      const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+      if (Array.isArray(res?.jobs)) {
+        rawJobs.push(...res.jobs);
+      }
+      recoveredPages.push(p);
+    } catch (err) {
+      console.warn(`[jobsApi] Retry failed for page ${p}:`, err);
+      stillFailedPages.push(p);
+    }
+  }
+
+  return {
+    jobs: rawJobs.map(normalizeJob),
+    recoveredPages,
+    stillFailedPages,
+  };
+}
+
+/**
  * Formats snake_case or lowercase labels (e.g. full_time, mid_level, junior)
  * into title case (e.g. Full-time, Mid-level, Junior).
  *
@@ -154,43 +233,78 @@ export function filterJobs(jobs, filters) {
  * page fetch is wrapped in a try/catch so a failure on page p preserves jobs
  * already collected rather than failing the entire feed.
  *
+ * Returns structured metadata alongside the jobs array:
+ * { jobs, allJobs, total, totalPages, loadedPages, failedPages, nextPageToLoad, isIncomplete }
+ *
  * @param {object} [filters]
- * @returns {Promise<{ jobs: Array<object>, total: number }>}
+ * @returns {Promise<{
+ *   jobs: Array<object>,
+ *   allJobs: Array<object>,
+ *   total: number,
+ *   totalPages: number,
+ *   loadedPages: Array<number>,
+ *   failedPages: Array<number>,
+ *   nextPageToLoad: number|null,
+ *   isIncomplete: boolean
+ * }>}
  */
 export async function getMatches(filters) {
-  let normalized;
-
   if (USE_MOCK_JOBS) {
-    normalized = MOCK_JOBS.map(normalizeJob);
-  } else {
-    // Backend supports sort=best_fit, page, and pageSize up to 50
-    const page1Data = await request('/jobs?sort=best_fit&page=1&pageSize=50');
-    const allRawJobs = Array.isArray(page1Data?.jobs) ? [...page1Data.jobs] : [];
-    const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
-
-    // Fetch remaining pages sequentially up to MAX_PAGES_TO_FETCH
-    if (totalPages > 1) {
-      const maxPages = Math.min(totalPages, MAX_PAGES_TO_FETCH);
-      for (let p = 2; p <= maxPages; p += 1) {
-        try {
-          const pageRes = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
-          if (Array.isArray(pageRes?.jobs)) {
-            allRawJobs.push(...pageRes.jobs);
-          }
-        } catch (pageErr) {
-          console.warn(`[getMatches] Failed to fetch page ${p} of ${totalPages}:`, pageErr);
-        }
-      }
-    }
-
-    normalized = allRawJobs.map(normalizeJob);
+    const normalized = MOCK_JOBS.map(normalizeJob);
+    const filtered = filters ? filterJobs(normalized, filters) : normalized;
+    return {
+      jobs: filtered,
+      allJobs: normalized,
+      total: filtered.length,
+      totalPages: 1,
+      loadedPages: [1],
+      failedPages: [],
+      nextPageToLoad: null,
+      isIncomplete: false,
+    };
   }
 
+  // Backend supports sort=best_fit, page, and pageSize up to 50
+  const page1Data = await request('/jobs?sort=best_fit&page=1&pageSize=50');
+  const allRawJobs = Array.isArray(page1Data?.jobs) ? [...page1Data.jobs] : [];
+  const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
+
+  const loadedPages = [1];
+  const failedPages = [];
+
+  // Fetch remaining pages sequentially up to MAX_PAGES_TO_FETCH
+  if (totalPages > 1) {
+    const maxPages = Math.min(totalPages, MAX_PAGES_TO_FETCH);
+    for (let p = 2; p <= maxPages; p += 1) {
+      try {
+        const pageRes = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+        if (Array.isArray(pageRes?.jobs)) {
+          allRawJobs.push(...pageRes.jobs);
+        }
+        loadedPages.push(p);
+      } catch (pageErr) {
+        console.warn(`[getMatches] Failed to fetch page ${p} of ${totalPages}:`, pageErr);
+        failedPages.push(p);
+      }
+    }
+  }
+
+  const normalized = allRawJobs.map(normalizeJob);
   const filtered = filters ? filterJobs(normalized, filters) : normalized;
+
+  const lastAttemptedPage = Math.min(totalPages, MAX_PAGES_TO_FETCH);
+  const nextPageToLoad = lastAttemptedPage < totalPages ? lastAttemptedPage + 1 : null;
+  const isIncomplete = failedPages.length > 0 || nextPageToLoad !== null;
 
   return {
     jobs: filtered,
+    allJobs: normalized,
     total: filtered.length,
+    totalPages,
+    loadedPages,
+    failedPages,
+    nextPageToLoad,
+    isIncomplete,
   };
 }
 

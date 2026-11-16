@@ -5,7 +5,14 @@ import FilterSidebar from '../components/jobs/FilterSidebar';
 import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
-import { getMatches, getMatchDetail, filterJobs, USE_MOCK_JOBS } from '../api/jobs';
+import {
+  getMatches,
+  getMatchDetail,
+  filterJobs,
+  fetchMorePages,
+  retryFailedPages,
+  USE_MOCK_JOBS,
+} from '../api/jobs';
 import './JobsFeed.css';
 
 const INITIAL_FILTERS = {
@@ -26,6 +33,19 @@ export default function JobsFeed() {
   const [error, setError] = useState(null);
   const [allJobs, setAllJobs] = useState([]);
 
+  // Pagination & Catalogue metadata
+  const [paginationMeta, setPaginationMeta] = useState({
+    totalPages: 1,
+    loadedPages: [1],
+    failedPages: [],
+    nextPageToLoad: null,
+    isIncomplete: false,
+  });
+
+  const [isFetchingMorePages, setIsFetchingMorePages] = useState(false);
+  const [isRetryingFailedPages, setIsRetryingFailedPages] = useState(false);
+  const [pageActionError, setPageActionError] = useState(null);
+
   // Drawer detail states
   const jobParam = searchParams.get('job');
   const [activeJob, setActiveJob] = useState(null);
@@ -38,8 +58,17 @@ export default function JobsFeed() {
     getMatches()
       .then((res) => {
         if (isMounted) {
-          const list = Array.isArray(res) ? res : (res?.jobs || []);
+          const list = Array.isArray(res) ? res : (res?.allJobs || res?.jobs || []);
           setAllJobs(list);
+          if (res && typeof res === 'object' && 'isIncomplete' in res) {
+            setPaginationMeta({
+              totalPages: res.totalPages || 1,
+              loadedPages: res.loadedPages || [1],
+              failedPages: res.failedPages || [],
+              nextPageToLoad: res.nextPageToLoad ?? null,
+              isIncomplete: Boolean(res.isIncomplete),
+            });
+          }
           setLoading(false);
         }
       })
@@ -58,10 +87,20 @@ export default function JobsFeed() {
   const handleRetry = useCallback(() => {
     setLoading(true);
     setError(null);
+    setPageActionError(null);
     getMatches()
       .then((res) => {
-        const list = Array.isArray(res) ? res : (res?.jobs || []);
+        const list = Array.isArray(res) ? res : (res?.allJobs || res?.jobs || []);
         setAllJobs(list);
+        if (res && typeof res === 'object' && 'isIncomplete' in res) {
+          setPaginationMeta({
+            totalPages: res.totalPages || 1,
+            loadedPages: res.loadedPages || [1],
+            failedPages: res.failedPages || [],
+            nextPageToLoad: res.nextPageToLoad ?? null,
+            isIncomplete: Boolean(res.isIncomplete),
+          });
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -69,6 +108,69 @@ export default function JobsFeed() {
         setLoading(false);
       });
   }, []);
+
+  const handleFetchMorePages = useCallback(async () => {
+    if (!paginationMeta.nextPageToLoad || isFetchingMorePages) return;
+    setIsFetchingMorePages(true);
+    setPageActionError(null);
+
+    try {
+      const res = await fetchMorePages(paginationMeta.nextPageToLoad, paginationMeta.totalPages);
+      setAllJobs((prev) => {
+        const seen = new Set(prev.map((j) => j.id));
+        const additions = res.jobs.filter((j) => !seen.has(j.id));
+        return [...prev, ...additions];
+      });
+
+      setPaginationMeta((prev) => {
+        const combinedLoaded = Array.from(new Set([...prev.loadedPages, ...res.loadedPages])).sort((a, b) => a - b);
+        const combinedFailed = Array.from(new Set([...prev.failedPages, ...res.failedPages])).sort((a, b) => a - b);
+        const next = res.nextPageToLoad;
+        return {
+          ...prev,
+          loadedPages: combinedLoaded,
+          failedPages: combinedFailed,
+          nextPageToLoad: next,
+          isIncomplete: combinedFailed.length > 0 || next !== null,
+        };
+      });
+    } catch (err) {
+      setPageActionError(err?.message || 'Unable to load further pages.');
+    } finally {
+      setIsFetchingMorePages(false);
+    }
+  }, [paginationMeta.nextPageToLoad, paginationMeta.totalPages, isFetchingMorePages]);
+
+  const handleRetryFailedPages = useCallback(async () => {
+    if (paginationMeta.failedPages.length === 0 || isRetryingFailedPages) return;
+    setIsRetryingFailedPages(true);
+    setPageActionError(null);
+
+    try {
+      const res = await retryFailedPages(paginationMeta.failedPages);
+      setAllJobs((prev) => {
+        const seen = new Set(prev.map((j) => j.id));
+        const additions = res.jobs.filter((j) => !seen.has(j.id));
+        return [...prev, ...additions];
+      });
+
+      setPaginationMeta((prev) => {
+        const recoveredSet = new Set(res.recoveredPages);
+        const remainingFailed = prev.failedPages.filter((p) => !recoveredSet.has(p));
+        const combinedLoaded = Array.from(new Set([...prev.loadedPages, ...res.recoveredPages])).sort((a, b) => a - b);
+        return {
+          ...prev,
+          loadedPages: combinedLoaded,
+          failedPages: remainingFailed,
+          isIncomplete: remainingFailed.length > 0 || prev.nextPageToLoad !== null,
+        };
+      });
+    } catch (err) {
+      setPageActionError(err?.message || 'Unable to retry failed pages.');
+    } finally {
+      setIsRetryingFailedPages(false);
+    }
+  }, [paginationMeta.failedPages, isRetryingFailedPages]);
 
   const [visibleMoreCount, setVisibleMoreCount] = useState(2);
 
@@ -152,6 +254,75 @@ export default function JobsFeed() {
     setDrawerError(null);
   }, [searchParams, setSearchParams]);
 
+  const renderIncompleteNotice = (inEmptyState = false) => {
+    if (!paginationMeta.isIncomplete) return null;
+
+    const hasMore = paginationMeta.nextPageToLoad !== null;
+    const hasFailed = paginationMeta.failedPages.length > 0;
+    const loadedCount = paginationMeta.loadedPages.length;
+    const total = paginationMeta.totalPages;
+
+    return (
+      <div
+        className={`jobs-incomplete-banner ${inEmptyState ? 'is-empty-state' : ''}`}
+        role="status"
+        data-testid={inEmptyState ? 'jobs-empty-incomplete-notice' : 'jobs-incomplete-banner'}
+      >
+        <div className="jobs-incomplete-icon" aria-hidden="true">
+          {hasFailed ? '⚠️' : 'ℹ️'}
+        </div>
+        <div className="jobs-incomplete-content">
+          <p className="jobs-incomplete-text">
+            {hasMore && (
+              <span>
+                Showing results from the first {loadedCount} of {total} catalogue pages.{' '}
+              </span>
+            )}
+            {hasFailed && (
+              <span className="jobs-incomplete-failed-text">
+                Some pages failed to load (page {paginationMeta.failedPages.join(', ')}).{' '}
+              </span>
+            )}
+            {inEmptyState && (
+              <span>
+                Matching roles might exist in unsearched or failed pages.
+              </span>
+            )}
+          </p>
+          <div className="jobs-incomplete-actions">
+            {hasMore && (
+              <button
+                type="button"
+                className="jobs-page-action-btn search-later-btn"
+                onClick={handleFetchMorePages}
+                disabled={isFetchingMorePages || isRetryingFailedPages}
+                data-testid="search-later-pages-btn"
+              >
+                {isFetchingMorePages ? 'Searching later pages...' : 'Search later pages'}
+              </button>
+            )}
+            {hasFailed && (
+              <button
+                type="button"
+                className="jobs-page-action-btn retry-pages-btn"
+                onClick={handleRetryFailedPages}
+                disabled={isFetchingMorePages || isRetryingFailedPages}
+                data-testid="retry-failed-pages-btn"
+              >
+                {isRetryingFailedPages ? 'Retrying failed pages...' : 'Retry failed pages'}
+              </button>
+            )}
+          </div>
+          {pageActionError && (
+            <p className="jobs-page-action-error" role="alert">
+              {pageActionError}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="jobs-feed-page">
       <AppNav activeTab="jobs" />
@@ -219,9 +390,13 @@ export default function JobsFeed() {
                 >
                   Reset filters
                 </button>
+
+                {paginationMeta.isIncomplete && renderIncompleteNotice(true)}
               </div>
             ) : (
               <>
+                {renderIncompleteNotice(false)}
+
                 {/* Featured Match Card */}
                 {featuredJob && (
                   <FeaturedMatch
