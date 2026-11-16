@@ -1,0 +1,246 @@
+.featured-match-card {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Eyebrow placed 61px below top of card (padding 32px + 29px margin) */
+.featured-eyebrow {
+  margin-top: 29px;
+  margin-bottom: 16px;
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--eyebrow);
+  letter-spacing: 0.08em;
+}
+
+/* Identity row */
+.featured-identity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.featured-company-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.featured-logo-tile {
+  width: 55px;
+  height: 55px;
+  border-radius: 14px;
+  background-color: var(--forest-track);
+  color: var(--lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-size: 22px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.featured-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.featured-company-name {
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.featured-role-title {
+  margin: 0 0 6px 0;
+  font-family: var(--font-family);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.featured-meta {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.featured-fit-gauge {
+  flex-shrink: 0;
+}
+
+/* Panels row */
+.featured-panels-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.featured-panel {
+  background-color: var(--panel);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+}
+
+.featured-panel-title {
+  margin: 0 0 12px 0;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.featured-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.featured-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.panel-item-icon {
+  font-size: 12px;
+  font-weight: 700;
+  width: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.check-icon {
+  color: var(--eyebrow);
+}
+
+.plus-icon {
+  color: var(--muted);
+}
+
+/* Footer row */
+.featured-footer-row {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.featured-view-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.featured-view-link:hover {
+  text-decoration: underline;
+}
+
+.featured-apply-btn {
+  width: 112px;
+  height: 47px;
+  border-radius: 12px;
+  border: none;
+  background-color: var(--lime);
+  color: var(--ink);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+/* Disabled style matching Start analysing CV per finding [P1] */
+.featured-apply-btn.is-disabled {
+  background-color: var(--lime-soft, #EEF9C7);
+  color: var(--lime-soft-text, #8A9A5E);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.featured-apply-btn.is-disabled:hover {
+  background-color: var(--lime-soft, #EEF9C7);
+  transform: none;
+}
+
+/* Visually hidden utility for screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .featured-match-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .featured-eyebrow {
+    margin-top: 10px;
+  }
+
+  .featured-identity-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .featured-fit-gauge {
+    align-self: flex-end;
+  }
+
+  .featured-panels-row {
+    grid-template-columns: 1fr;
+  }
+}

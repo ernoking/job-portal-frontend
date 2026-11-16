@@ -1,0 +1,233 @@
+.match-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.match-drawer-panel {
+  position: relative;
+  width: 680px;
+  max-width: 100vw;
+  height: 100%;
+  background-color: var(--surface);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  animation: drawerSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.match-drawer-close {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+
+.match-drawer-close:hover {
+  background-color: var(--panel);
+  transform: scale(1.05);
+}
+
+.match-drawer-close:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.match-drawer-content {
+  padding: 44px 40px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.match-drawer-eyebrow {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--eyebrow);
+  letter-spacing: 0.08em;
+}
+
+.match-drawer-title {
+  margin: 0 0 8px 0;
+  font-family: var(--font-family);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  max-width: 540px;
+}
+
+.match-drawer-meta {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.match-drawer-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
+}
+
+.match-drawer-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.match-drawer-heading {
+  margin: 0 0 12px 0;
+  font-family: var(--font-family);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.match-drawer-narrative {
+  margin: 0 0 12px 0;
+  font-family: var(--font-family);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.match-drawer-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.match-drawer-bullet-item {
+  font-family: var(--font-family);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.match-drawer-text {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.match-drawer-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.match-drawer-skill-chip {
+  background-color: var(--chip);
+  color: var(--chip-text);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+
+/* Loading & Error States in Drawer */
+.match-drawer-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 30px;
+}
+
+.match-drawer-skeleton-bar {
+  background-color: var(--chip);
+  border-radius: 8px;
+  animation: pulseSkeleton 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseSkeleton {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+.match-drawer-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 16px;
+}
+
+.match-drawer-error-text {
+  font-family: var(--font-family);
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.match-drawer-retry-btn {
+  background-color: var(--lime);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.match-drawer-retry-btn:hover {
+  background-color: #d2f24b;
+}
+
+@media (max-width: 768px) {
+  .match-drawer-panel {
+    width: 100vw;
+  }
+
+  .match-drawer-content {
+    padding: 32px 24px;
+  }
+
+  .match-drawer-title {
+    font-size: 26px;
+  }
+}

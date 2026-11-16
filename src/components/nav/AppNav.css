@@ -1,0 +1,255 @@
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  height: 75px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+}
+
+.app-nav-inner {
+  max-width: 1920px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Brand */
+.app-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.app-nav-logo-tile {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background-color: var(--forest-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-nav-sparkle {
+  width: 16px;
+  height: 16px;
+}
+
+.app-nav-wordmark {
+  font-family: var(--font-family);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.app-nav-match {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.app-nav-wise {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* Center Tabs */
+.app-nav-tabs {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  height: 100%;
+}
+
+.app-nav-tab {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.app-nav-tab:hover {
+  color: var(--ink);
+}
+
+.app-nav-tab.is-active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.app-nav-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 2px;
+  background-color: var(--eyebrow);
+  border-radius: 1px 1px 0 0;
+}
+
+.app-nav-indicator.indicator-jobs {
+  width: 95px;
+}
+
+.app-nav-indicator.indicator-tracker {
+  width: 150px;
+}
+
+/* Right: User Avatar & Popover */
+.app-nav-user-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.app-nav-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--lime);
+  border: none;
+  color: var(--ink);
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.app-nav-avatar:hover {
+  transform: scale(1.04);
+}
+
+.app-nav-avatar:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+/* Popover */
+.app-nav-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 200px;
+  box-shadow: 0 10px 24px rgba(20, 40, 30, 0.12);
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.app-nav-popover-info {
+  margin-bottom: 10px;
+}
+
+.app-nav-popover-name {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.app-nav-popover-email {
+  margin: 2px 0 0;
+  font-family: var(--font-family);
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-nav-popover-divider {
+  height: 1px;
+  background-color: var(--line);
+  margin: 8px 0;
+}
+
+.app-nav-popover-logout {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--error);
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.app-nav-popover-logout:hover {
+  opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .app-nav-inner {
+    padding: 0 24px;
+  }
+
+  .app-nav-tabs {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-nav-inner {
+    padding: 0 16px;
+  }
+
+  .app-nav-wordmark {
+    display: none;
+  }
+
+  .app-nav-tabs {
+    position: static;
+    transform: none;
+    gap: 16px;
+  }
+
+  .app-nav-tab {
+    font-size: 13px;
+  }
+
+  .app-nav-indicator.indicator-jobs {
+    width: 100%;
+  }
+
+  .app-nav-indicator.indicator-tracker {
+    width: 100%;
+  }
+}

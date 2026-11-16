@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import ResumeUpload from './pages/ResumeUpload'
 import CareerPreferences from './pages/CareerPreferences'
 import ProfileReview from './pages/ProfileReview'
+import JobsFeed from './pages/JobsFeed'
+import ApplicationTracker from './pages/ApplicationTracker'
 
 function ProtectedRoute({ children }) {
   const { status } = useAuth()
@@ -81,7 +83,15 @@ export default function App() {
           path="/matches"
           element={
             <ProtectedRoute>
-              <div style={{ padding: 40, fontFamily: 'sans-serif' }}>Matches Placeholder</div>
+              <JobsFeed />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/applications"
+          element={
+            <ProtectedRoute>
+              <ApplicationTracker />
             </ProtectedRoute>
           }
         />

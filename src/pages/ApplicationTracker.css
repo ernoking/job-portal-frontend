@@ -1,0 +1,11 @@
+.tracker-page {
+  min-height: 100vh;
+  background-color: var(--page);
+  display: flex;
+  flex-direction: column;
+}
+
+.tracker-main {
+  flex: 1;
+  width: 100%;
+}
