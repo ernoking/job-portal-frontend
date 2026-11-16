@@ -231,6 +231,7 @@
     padding: 0 16px;
   }
 
+  .app-nav-brand .logo-text,
   .app-nav-wordmark {
     display: none;
   }

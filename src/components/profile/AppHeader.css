@@ -107,4 +107,8 @@
   .app-header-right {
     gap: 16px;
   }
+  .app-header-logo .logo-text,
+  .app-logo-wordmark {
+    display: none;
+  }
 }

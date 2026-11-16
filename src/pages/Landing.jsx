@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
+import BrandLogo from '../components/BrandLogo';
 import Pill from '../components/Pill';
 import Button from '../components/Button';
 import MatchCard from '../components/MatchCard';
@@ -63,7 +63,7 @@ export default function Landing() {
       <header className="landing-header">
         <div className="header-inner">
           <div className="header-logo">
-            <Logo variant="light" size="normal" to="/" />
+            <BrandLogo variant="light" size="normal" to="/" />
           </div>
 
           <nav className="header-nav" aria-label="Main Navigation">
@@ -298,7 +298,7 @@ export default function Landing() {
         <div className="footer-line" />
         <div className="footer-inner">
           <div className="footer-logo">
-            <Logo variant="light" size="normal" to="/" />
+            <BrandLogo variant="light" size="normal" to="/" />
           </div>
 
           <p className="footer-center-text">
