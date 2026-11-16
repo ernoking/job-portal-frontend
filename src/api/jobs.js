@@ -10,20 +10,31 @@ import { MOCK_JOBS } from '../mocks/jobs';
 export const USE_MOCK_JOBS = import.meta.env.VITE_USE_MOCK_JOBS === 'true';
 
 /**
- * Formats backend snake_case employment types (e.g. full_time, part_time)
- * into title case (e.g. Full-time, Part-time).
+ * Maximum number of pages to retrieve sequentially during feed hydration (250 jobs max).
+ * Prevents unbounded ranking and query load on the backend.
+ */
+export const MAX_PAGES_TO_FETCH = 5;
+
+/**
+ * Formats snake_case or lowercase labels (e.g. full_time, mid_level, junior)
+ * into title case (e.g. Full-time, Mid-level, Junior).
  *
  * @param {string} val
  * @returns {string}
  */
-function formatEmploymentType(val) {
-  if (!val) return '';
-  if (val.includes('_')) {
-    const parts = val.split('_');
-    return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase() +
-      (parts.length > 1 ? '-' + parts.slice(1).join('-').toLowerCase() : '');
+export function formatLabel(val) {
+  if (!val || typeof val !== 'string') return '';
+  const trimmed = val.trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('_')) {
+    const parts = trimmed.split('_');
+    return (
+      parts[0].charAt(0).toUpperCase() +
+      parts[0].slice(1).toLowerCase() +
+      (parts.length > 1 ? '-' + parts.slice(1).join('-').toLowerCase() : '')
+    );
   }
-  return val.charAt(0).toUpperCase() + val.slice(1);
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }
 
 /**
@@ -38,10 +49,9 @@ export function normalizeJob(item) {
   const match = item.match;
   const isScored = match?.status === 'scored' && typeof match?.score === 'number';
 
-  const rawEmployment = item.employmentType || item.seniority || item.jobType || '';
-  const formattedEmployment = rawEmployment.includes('_')
-    ? formatEmploymentType(rawEmployment)
-    : rawEmployment;
+  const rawEmployment = item.jobType || item.employmentType || '';
+  const employmentType = formatLabel(rawEmployment);
+  const seniority = formatLabel(item.seniority || '');
 
   return {
     id: item.id,
@@ -51,7 +61,8 @@ export function normalizeJob(item) {
     location: item.location || '',
     jobType: item.jobType || '',
     workType: item.workType || '',
-    employmentType: formattedEmployment,
+    employmentType,
+    seniority,
     postedAt: item.postedAt || '',
     skills: Array.isArray(item.skills) ? item.skills : [],
     fit: isScored ? match.score : (typeof item.fit === 'number' ? item.fit : null),
@@ -138,8 +149,10 @@ export function filterJobs(jobs, filters) {
 
 /**
  * Fetches matched job listings from GET /api/jobs (or mock fixtures).
- * If the real backend reports totalPages > 1, all remaining pages are fetched
- * and combined before normalizing and client-side filtering.
+ * If the real backend reports totalPages > 1, remaining pages are fetched
+ * sequentially up to MAX_PAGES_TO_FETCH (5 pages / 250 jobs max). Each subsequent
+ * page fetch is wrapped in a try/catch so a failure on page p preserves jobs
+ * already collected rather than failing the entire feed.
  *
  * @param {object} [filters]
  * @returns {Promise<{ jobs: Array<object>, total: number }>}
@@ -155,16 +168,17 @@ export async function getMatches(filters) {
     const allRawJobs = Array.isArray(page1Data?.jobs) ? [...page1Data.jobs] : [];
     const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
 
-    // Fetch all remaining pages if multi-page results exist
+    // Fetch remaining pages sequentially up to MAX_PAGES_TO_FETCH
     if (totalPages > 1) {
-      const remainingPromises = [];
-      for (let p = 2; p <= totalPages; p += 1) {
-        remainingPromises.push(request(`/jobs?sort=best_fit&page=${p}&pageSize=50`));
-      }
-      const remainingPages = await Promise.all(remainingPromises);
-      for (const pageRes of remainingPages) {
-        if (Array.isArray(pageRes?.jobs)) {
-          allRawJobs.push(...pageRes.jobs);
+      const maxPages = Math.min(totalPages, MAX_PAGES_TO_FETCH);
+      for (let p = 2; p <= maxPages; p += 1) {
+        try {
+          const pageRes = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+          if (Array.isArray(pageRes?.jobs)) {
+            allRawJobs.push(...pageRes.jobs);
+          }
+        } catch (pageErr) {
+          console.warn(`[getMatches] Failed to fetch page ${p} of ${totalPages}:`, pageErr);
         }
       }
     }

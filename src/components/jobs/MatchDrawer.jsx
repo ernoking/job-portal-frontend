@@ -79,6 +79,7 @@ export default function MatchDrawer({
     company = '',
     location = '',
     workType = '',
+    employmentType = '',
     fit,
     whyMatch = [],
     whyMatchDetail = [],
@@ -94,7 +95,7 @@ export default function MatchDrawer({
   const hasAboutRole = Boolean(aboutRole && aboutRole.trim());
   const hasSkillsToBuild = Array.isArray(skillsToBuild) && skillsToBuild.length > 0;
 
-  const metaString = [company, location, workType].filter(Boolean).join(' · ');
+  const metaString = [company, location, workType, employmentType].filter(Boolean).join(' · ');
 
   // Narrative intro vs bullet points
   const introNarrative = hasWhyMatch ? effectiveWhyMatch[0] : null;
