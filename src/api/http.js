@@ -1,4 +1,5 @@
 import { getStoredSession, clearStoredSession } from '../auth/storage';
+import { monitoredFetch } from '../monitoring/browserTraffic.js';
 
 export class ApiError extends Error {
   constructor(message, status = 0, data = null) {
@@ -71,7 +72,7 @@ export async function request(path, options = {}) {
 
   let res;
   try {
-    res = await fetch(url, {
+    res = await monitoredFetch(url, {
       ...options,
       headers,
       body,
