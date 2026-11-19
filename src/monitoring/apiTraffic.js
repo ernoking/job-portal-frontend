@@ -1,10 +1,28 @@
-// Versioned, bounded browser aggregates. No request URLs or credentials leave this module.
+// Versioned, bounded telemetry. Routes are templates; URLs and credentials stay local.
 export const REPORT_INTERVAL_MS = 60_000;
 export const DURATION_LIMITS_MS = [100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000];
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 const GROUPS = new Set(['auth', 'jobs', 'cv', 'profile', 'preferences', 'me']);
 const MAX_RESULTS = 128;
 const MAX_ATTEMPTS = 3;
+const MAX_REQUESTS = 64;
+const REQUEST_ID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const REQUEST_ROUTES = new Map([
+  ['/api/auth/register', '/auth/register'], ['/api/auth/login', '/auth/login'],
+  ['/api/auth/logout', '/auth/logout'], ['/api/me', '/me'], ['/api/account', '/account'],
+  ['/api/cv', '/cv'], ['/api/cv/upload', '/cv/upload'], ['/api/profile', '/profile'],
+  ['/api/jobs', '/jobs'], ['/api/preferences', '/preferences'], ['/api/ai/usage', '/ai/usage'],
+]);
+
+function requestRoute(input) {
+  const path = String(input).split(/[?#]/, 1)[0];
+  const fixed = REQUEST_ROUTES.get(path);
+  if (fixed) return fixed;
+  if (/^\/api\/cv\/[^/]+\/download$/.test(path)) return '/cv/:id/download';
+  if (/^\/api\/cv\/[^/]+\/profile$/.test(path)) return '/cv/:id/profile';
+  if (/^\/api\/jobs\/[^/]+$/.test(path)) return '/jobs/:id';
+  return 'unmatched';
+}
 
 function dimensions(input, method) {
   const path = String(input).split(/[?#]/, 1)[0];
@@ -22,6 +40,7 @@ export function createApiTrafficMonitor({
   setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout,
   id = () => globalThis.crypto.randomUUID(),
   mockApi = false, mockJobs = false,
+  captureRequests = false,
 } = {}) {
   let target = null;
   try {
@@ -30,7 +49,7 @@ export function createApiTrafficMonitor({
         !candidate.username && !candidate.password && !candidate.search && !candidate.hash) target = candidate.href;
   } catch { /* Missing or invalid configuration disables reporting. */ }
   const diagnostics = { sent_batches: 0, failed_attempts: 0, dropped_batches: 0, dropped_observations: 0 };
-  const empty = () => ({ start: wallNow(), starts: new Map(), results: new Map() });
+  const empty = () => ({ start: wallNow(), starts: new Map(), results: new Map(), requests: [], droppedRequests: 0 });
   let active = empty();
   let pending = null;
   let timer = null;
@@ -38,6 +57,28 @@ export function createApiTrafficMonitor({
   let inflight = 0;
   let stopped = false;
   const safe = (fn) => { try { return fn(); } catch { return undefined; } };
+
+  function recordRequest(input, dim, status, outcome, elapsed, startedAt, response) {
+    if (!captureRequests) return;
+    if (active.requests.length >= MAX_REQUESTS) { active.droppedRequests += 1; return; }
+    if (!Number.isFinite(elapsed) || !Number.isSafeInteger(startedAt)) {
+      active.droppedRequests += 1;
+      return;
+    }
+    const duration = Math.max(0, Math.min(elapsed, 3_600_000));
+    const rawId = safe(() => response?.headers?.get('X-Request-Id'));
+    const requestId = typeof rawId === 'string' && REQUEST_ID.test(rawId) ? rawId.toLowerCase() : null;
+    active.requests.push({
+      request_id: requestId,
+      started_at_ms: startedAt,
+      finished_at_ms: Math.round(startedAt + duration),
+      duration_ms: duration,
+      route: requestRoute(input),
+      method: dim.method,
+      status,
+      outcome,
+    });
+  }
 
   function record(dim, status, outcome, elapsed) {
     const key = `${dim.route}:${dim.method}:${outcome}:${status}`;
@@ -62,6 +103,7 @@ export function createApiTrafficMonitor({
     const dim = safe(() => dimensions(input, options.method));
     if (!dim) return fetchImpl(input, options);
     const began = safe(now);
+    const startedAt = captureRequests ? safe(wallNow) : null;
     safe(() => {
       const key = `${dim.route}:${dim.method}`;
       const row = active.starts.get(key) || { ...dim, count: 0 };
@@ -71,10 +113,16 @@ export function createApiTrafficMonitor({
     });
     try {
       const response = await fetchImpl(input, options);
-      safe(() => record(dim, response.status >= 100 && response.status <= 599 ? response.status : 'other', 'http', now() - began));
+      const status = response.status >= 100 && response.status <= 599 ? response.status : 'other';
+      const elapsed = safe(() => now() - began);
+      safe(() => record(dim, status, 'http', elapsed));
+      safe(() => recordRequest(input, dim, status, 'http', elapsed, startedAt, response));
       return response;
     } catch (error) {
-      safe(() => record(dim, 0, error?.name === 'AbortError' ? 'aborted' : 'network_error', now() - began));
+      const outcome = ['AbortError', 'TimeoutError'].includes(error?.name) ? 'aborted' : 'network_error';
+      const elapsed = safe(() => now() - began);
+      safe(() => record(dim, 0, outcome, elapsed));
+      safe(() => recordRequest(input, dim, 0, outcome, elapsed, startedAt));
       throw error;
     } finally {
       safe(() => { inflight = Math.max(0, inflight - 1); });
@@ -88,12 +136,13 @@ export function createApiTrafficMonitor({
     try {
       if (!pending) {
         const batch = {
-          schema_version: 1, batch_id: id(), window_start_ms: active.start, window_end_ms: wallNow(),
+          schema_version: captureRequests ? 2 : 1, batch_id: id(), window_start_ms: active.start, window_end_ms: wallNow(),
           interval_ms: REPORT_INTERVAL_MS, timing: 'fetch_response_headers',
           mock_api: Boolean(mockApi), mock_jobs: Boolean(mockJobs), inflight,
           duration_limits_ms: DURATION_LIMITS_MS,
           starts: [...active.starts.values()], results: [...active.results.values()],
           delivery: { ...diagnostics },
+          ...(captureRequests ? { requests: active.requests, dropped_requests: active.droppedRequests } : {}),
         };
         pending = { body: JSON.stringify(batch), attempts: 0 };
         active = empty();

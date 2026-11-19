@@ -3,4 +3,6 @@
 export const trafficConfig = Object.freeze({
   enabled: false,
   endpoint: '',
+  // Enable after the receiver accepts schema v2 request records.
+  captureRequests: false,
 });
