@@ -27,12 +27,13 @@ export async function confirmProfile(profile) {
 
   return await request('/api/profile', {
     method: 'PUT',
+    timeoutMs: 30_000,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cvId: getDraft().cvId, profile }),
   });
 }
 
 
-export function generateCvProfile(cvId) {
-  return request(`/api/cv/${encodeURIComponent(cvId)}/profile`, { method: 'POST' });
+export function generateCvProfile(cvId, { signal } = {}) {
+  return request(`/api/cv/${encodeURIComponent(cvId)}/profile`, { method: 'POST', signal, timeoutMs: 75_000 });
 }

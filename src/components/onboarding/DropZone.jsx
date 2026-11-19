@@ -10,12 +10,12 @@ function formatBytes(bytes) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export default function DropZone({ file, onFileSelect, errorMessage }) {
+export default function DropZone({ file, onFileSelect, errorMessage, disabled = false }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
   const validateAndSelect = (selectedFile) => {
-    if (!selectedFile) return;
+    if (disabled || !selectedFile) return;
 
     const result = validateCvFile(selectedFile);
     if (!result.ok) {
@@ -29,7 +29,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragOver(true);
+    if (!disabled) setIsDragOver(true);
   };
 
   const handleDragLeave = (e) => {
@@ -55,7 +55,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
 
   const handleButtonClick = (e) => {
     e.stopPropagation();
-    if (fileInputRef.current) {
+    if (!disabled && fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
@@ -63,7 +63,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      if (fileInputRef.current) {
+      if (!disabled && fileInputRef.current) {
         fileInputRef.current.click();
       }
     }
@@ -75,7 +75,8 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
       role="region"
       aria-label="Resume upload drop zone"
       aria-describedby="dropzone-format-text"
@@ -85,6 +86,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
       <input
         ref={fileInputRef}
         type="file"
+        disabled={disabled}
         accept=".pdf,.docx"
         className="dropzone-file-input"
         onChange={handleFileChange}
@@ -125,6 +127,7 @@ export default function DropZone({ file, onFileSelect, errorMessage }) {
       <button
         type="button"
         className="dropzone-browse-btn"
+        disabled={disabled}
         onClick={handleButtonClick}
         data-testid="browse-files-btn"
       >

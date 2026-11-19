@@ -34,7 +34,12 @@ export default function ActionBar({
           to="/upload"
           className="action-bar-cancel"
           data-testid="cancel-reupload-btn"
-          onClick={onCancel}
+          aria-disabled={isSubmitting}
+          tabIndex={isSubmitting ? -1 : undefined}
+          onClick={(event) => {
+            if (isSubmitting) { event.preventDefault(); return; }
+            onCancel?.(event);
+          }}
         >
           Cancel and reupload CV
         </Link>
