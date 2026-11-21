@@ -1,4 +1,4 @@
-export const MAX_CV_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_CV_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const ALLOWED_EXTENSIONS = ['.pdf', '.docx'];
 
@@ -10,7 +10,7 @@ export const EXPECTED_MIME_TYPES = {
 export const ALLOWED_GENERIC_MIME_TYPES = ['', 'application/octet-stream'];
 
 export const ERROR_UNSUPPORTED_TYPE = 'Invalid file format. Please upload a PDF or DOCX file.';
-export const ERROR_FILE_TOO_LARGE = 'File is too large. Maximum allowed size is 10MB';
+export const ERROR_FILE_TOO_LARGE = 'File is too large. Maximum allowed size is 5MB';
 
 /**
  * Pure function to validate an uploaded CV file.

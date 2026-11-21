@@ -115,7 +115,7 @@ export default function DropZone({ file, onFileSelect, errorMessage, disabled = 
           {file ? file.name : 'Drag and drop your resume file here'}
         </p>
         <p id="dropzone-format-text" className="dropzone-subtitle">
-          {file ? formatBytes(file.size) : 'Supports PDF, DOCX (Max 10MB)'}
+          {file ? formatBytes(file.size) : 'Supports PDF, DOCX (Max 5MB)'}
         </p>
         {errorMessage && (
           <p className="dropzone-error-msg" role="alert" data-testid="dropzone-error" style={{ display: 'none' }}>
