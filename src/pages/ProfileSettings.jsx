@@ -258,17 +258,18 @@ export default function ProfileSettings() {
             <svg
               className="profile-cover-decor"
               viewBox="0 0 1260 200"
-              preserveAspectRatio="xMidYMid slice"
+              preserveAspectRatio="none"
               aria-hidden="true"
             >
-              <circle cx="1070" cy="60" r="210" stroke="rgba(217, 247, 111, 0.15)" strokeWidth="1.5" fill="none" />
-              <circle cx="1090" cy="60" r="150" stroke="rgba(217, 247, 111, 0.22)" strokeWidth="1.5" fill="none" />
-              <circle cx="1110" cy="60" r="90" stroke="rgba(217, 247, 111, 0.3)" strokeWidth="1.5" fill="none" />
-              <circle cx="1138" cy="146" r="28" fill="rgba(217, 247, 111, 0.18)" />
-              <circle cx="938" cy="158" r="8" fill="rgba(217, 247, 111, 0.25)" />
-              <text x="64" y="65" fill="#d9f76f" fontSize="24" fontFamily="sans-serif">
-                ✦
-              </text>
+              <circle cx="1110" cy="62" r="90" stroke="rgba(221, 248, 107, 0.35)" strokeWidth="1" fill="none" />
+              <circle cx="1110" cy="62" r="170" stroke="rgba(221, 248, 107, 0.35)" strokeWidth="1" fill="none" />
+              <circle cx="1110" cy="62" r="250" stroke="rgba(221, 248, 107, 0.35)" strokeWidth="1" fill="none" />
+              <circle cx="938" cy="158" r="8" fill="#8AB345" />
+              <circle cx="1138" cy="147" r="28" fill="#DDF86B" />
+              <path
+                d="M76 45.5 C76 52 70 58 63.5 58 C70 58 76 64 76 70.5 C76 64 82 58 88.5 58 C82 58 76 52 76 45.5 Z"
+                fill="#DDF86B"
+              />
             </svg>
 
             <button
@@ -701,7 +702,7 @@ export default function ProfileSettings() {
                 <h4 className="profile-skills-subhead">TECHNICAL SKILLS</h4>
                 <div className="profile-skills-chips">
                   {profileData.techSkills.map((skill) => (
-                    <span key={skill} className="profile-skill-chip">
+                    <span key={skill} className="profile-skill-chip tech">
                       {skill}
                       <button
                         type="button"
@@ -720,7 +721,7 @@ export default function ProfileSettings() {
                 <h4 className="profile-skills-subhead">SOFT SKILLS</h4>
                 <div className="profile-skills-chips">
                   {profileData.softSkills.map((skill) => (
-                    <span key={skill} className="profile-skill-chip">
+                    <span key={skill} className="profile-skill-chip soft">
                       {skill}
                       <button
                         type="button"
@@ -765,8 +766,8 @@ export default function ProfileSettings() {
 
               <div className="profile-languages-list">
                 {profileData.languages.map((lang) => (
-                  <div key={lang.id} className="profile-language-row">
-                    <span className="profile-language-name">
+                  <div key={lang.id} className="profile-language-pair">
+                    <span className="profile-language-chip">
                       {lang.name}
                       <button
                         type="button"
@@ -777,19 +778,24 @@ export default function ProfileSettings() {
                         ×
                       </button>
                     </span>
-                    <select
-                      className="profile-language-level-select"
-                      value={lang.level}
-                      onChange={(e) => handleLanguageLevelChange(lang.id, e.target.value)}
-                      aria-label={`Level for ${lang.name}`}
-                    >
-                      <option value="A1">A1 - Beginner</option>
-                      <option value="A2">A2 - Elementary</option>
-                      <option value="B1">B1 - Intermediate</option>
-                      <option value="B2">B2 - Upper-intermediate</option>
-                      <option value="C1">C1 - Advanced</option>
-                      <option value="C2">C2 - Mastery / Native</option>
-                    </select>
+                    <div className="profile-language-select-wrap">
+                      <select
+                        className="profile-language-level-select"
+                        value={lang.level}
+                        onChange={(e) => handleLanguageLevelChange(lang.id, e.target.value)}
+                        aria-label={`Level for ${lang.name}`}
+                      >
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="B1">B1</option>
+                        <option value="B2">B2</option>
+                        <option value="C1">C1</option>
+                        <option value="C2">C2</option>
+                      </select>
+                      <svg className="profile-select-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#65756C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -815,16 +821,16 @@ export default function ProfileSettings() {
 
               <ul className="profile-checklist" aria-label="Profile completion checklist">
                 <li className="profile-checklist-item is-done">
-                  <span className="check-icon">✓</span>
+                  <span className="profile-olive-check" aria-hidden="true">✓</span>
                   <span>CV uploaded and parsed</span>
                 </li>
                 <li className="profile-checklist-item is-done">
-                  <span className="check-icon">✓</span>
+                  <span className="profile-olive-check" aria-hidden="true">✓</span>
                   <span>Career preferences set</span>
                 </li>
                 <li className="profile-checklist-item">
-                  <span className="check-circle" />
-                  <span>Add a profile photo</span>
+                  <span className="profile-empty-circle" aria-hidden="true" />
+                  <span className="profile-todo-text">Add a profile photo</span>
                 </li>
               </ul>
             </section>
@@ -841,14 +847,20 @@ export default function ProfileSettings() {
               </p>
 
               <form onSubmit={handleAddCompany} className="profile-search-row">
-                <input
-                  type="text"
-                  className="profile-search-input"
-                  placeholder="Search or type a company name…"
-                  value={newCompanyInput}
-                  onChange={(e) => setNewCompanyInput(e.target.value)}
-                  data-testid="company-exclusion-input"
-                />
+                <div className="profile-search-input-wrap">
+                  <svg className="profile-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#88998F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="profile-search-input"
+                    placeholder="Search or type a company name…"
+                    value={newCompanyInput}
+                    onChange={(e) => setNewCompanyInput(e.target.value)}
+                    data-testid="company-exclusion-input"
+                  />
+                </div>
                 <button
                   type="submit"
                   className="profile-add-btn"
@@ -861,7 +873,7 @@ export default function ProfileSettings() {
               <div className="profile-excluded-chips">
                 {profileData.excludedCompanies.map((comp) => (
                   <span key={comp.id} className="profile-excluded-chip">
-                    <strong>{comp.name}</strong>
+                    <span className="exclusion-name">{comp.name}</span>
                     {comp.note && <span className="exclusion-note">· {comp.note}</span>}
                     <button
                       type="button"
