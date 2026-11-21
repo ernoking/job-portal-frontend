@@ -132,6 +132,23 @@ async function performRequest(path, options) {
   }
 
   if (!res.ok) {
+    if (res.status === 429) {
+      // AI Usage Rate Limit reached (AJSP-16, AJSP-77)
+      const resetTime = data?.error?.resetsAt || data?.resetsAt || res.headers.get('retry-after');
+      let message = data?.error?.message || data?.message;
+      if (!message) {
+        if (resetTime) {
+          const dateStr = !Number.isNaN(Date.parse(resetTime))
+            ? new Date(resetTime).toLocaleString()
+            : resetTime;
+          message = `You have reached your AI usage limit. You can continue on ${dateStr}.`;
+        } else {
+          message = 'You have reached your AI usage limit. Please try again later.';
+        }
+      }
+      throw new ApiError(message, 429, data);
+    }
+
     if (res.status === 503) {
       throw new ApiError(
         data?.error?.message || 'The service is unavailable right now. Please try again later.',
