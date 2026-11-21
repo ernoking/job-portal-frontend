@@ -5,6 +5,11 @@ import FilterSidebar from '../components/jobs/FilterSidebar';
 import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
+import ApplyPathwaysModal from '../components/jobs/ApplyPathwaysModal';
+import StandardApplyModal from '../components/jobs/StandardApplyModal';
+import TailoredAiModal from '../components/jobs/TailoredAiModal';
+import AutoApplyModal from '../components/jobs/AutoApplyModal';
+import ApplicationSubmittedModal from '../components/jobs/ApplicationSubmittedModal';
 import {
   getMatches,
   getMatchDetail,
@@ -46,6 +51,19 @@ export default function JobsFeed() {
   const [isFetchingMorePages, setIsFetchingMorePages] = useState(false);
   const [isRetryingFailedPages, setIsRetryingFailedPages] = useState(false);
   const [pageActionError, setPageActionError] = useState(null);
+
+  // Feed segment filter (Figma 209:645)
+  const [activeSegment, setActiveSegment] = useState('all');
+
+  // Application tracking state
+  const [appliedJobIds, setAppliedJobIds] = useState(() => new Set());
+  const [applyTargetJob, setApplyTargetJob] = useState(null);
+  const [isPathwaysOpen, setIsPathwaysOpen] = useState(false);
+  const [isStandardApplyOpen, setIsStandardApplyOpen] = useState(false);
+  const [isTailoredAiOpen, setIsTailoredAiOpen] = useState(false);
+  const [isAutoApplyOpen, setIsAutoApplyOpen] = useState(false);
+  const [lastSubmission, setLastSubmission] = useState(null);
+  const [isSubmittedOpen, setIsSubmittedOpen] = useState(false);
 
   // Drawer detail states
   const jobParam = searchParams.get('job');
@@ -165,16 +183,61 @@ export default function JobsFeed() {
 
   const [visibleMoreCount, setVisibleMoreCount] = useState(2);
 
-  // Filter jobs client-side from the initial render onwards
+  // Filter jobs client-side from the initial render onwards + Feed Segment filter
   const filteredJobs = useMemo(() => {
-    return filterJobs(flattenJobPages(jobPages), filters);
-  }, [jobPages, filters]);
+    const base = filterJobs(flattenJobPages(jobPages), filters);
+    if (activeSegment === 'applied') {
+      return base.filter((j) => appliedJobIds.has(j.id));
+    }
+    if (activeSegment === 'not_applied') {
+      return base.filter((j) => !appliedJobIds.has(j.id));
+    }
+    if (activeSegment === 'new') {
+      return base.filter((j) => j.isNew || !appliedJobIds.has(j.id));
+    }
+    if (activeSegment === 'hidden') {
+      return [];
+    }
+    return base;
+  }, [jobPages, filters, activeSegment, appliedJobIds]);
 
   const featuredJob = filteredJobs[0] || null;
   const remainingJobs = filteredJobs.slice(1);
   const moreJobs = remainingJobs.slice(0, visibleMoreCount);
   const hasMore = remainingJobs.length > visibleMoreCount;
   const remainingCount = remainingJobs.length - visibleMoreCount;
+
+  // Apply flow handlers
+  const handleStartApply = useCallback((job) => {
+    setApplyTargetJob(job);
+    setIsPathwaysOpen(true);
+  }, []);
+
+  const handleSelectPathway = useCallback((pathway) => {
+    setIsPathwaysOpen(false);
+    if (pathway === 'standard') {
+      setIsStandardApplyOpen(true);
+    } else if (pathway === 'tailored') {
+      setIsTailoredAiOpen(true);
+    } else if (pathway === 'auto') {
+      setIsAutoApplyOpen(true);
+    }
+  }, []);
+
+  const handleSubmitSuccess = useCallback((submissionData) => {
+    setIsStandardApplyOpen(false);
+    setIsTailoredAiOpen(false);
+    setAppliedJobIds((prev) => new Set([...prev, submissionData.jobId]));
+    setLastSubmission(submissionData);
+    setIsSubmittedOpen(true);
+  }, []);
+
+  const handleBackToPathways = useCallback(() => {
+    setIsStandardApplyOpen(false);
+    setIsTailoredAiOpen(false);
+    setIsAutoApplyOpen(false);
+    setIsPathwaysOpen(true);
+  }, []);
 
   // Fetch drawer job detail when ?job=<id> is in URL
   const fetchDrawerDetail = useCallback(
@@ -341,6 +404,28 @@ export default function JobsFeed() {
               <p className="jobs-feed-subtitle">
                 Based on your profile and preferences.
               </p>
+
+              {/* Feed Filter Segments (Figma 209:645) */}
+              <div className="jobs-feed-segments-row" role="tablist" aria-label="Feed filter">
+                {[
+                  { id: 'all', label: 'All ranked jobs' },
+                  { id: 'new', label: 'New / unseen only' },
+                  { id: 'not_applied', label: 'Not applied' },
+                  { id: 'applied', label: 'Applied jobs' },
+                  { id: 'hidden', label: 'Hidden jobs' },
+                ].map((seg) => (
+                  <button
+                    key={seg.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSegment === seg.id}
+                    className={`jobs-feed-segment-btn ${activeSegment === seg.id ? 'is-active' : ''}`}
+                    onClick={() => setActiveSegment(seg.id)}
+                  >
+                    {seg.label}
+                  </button>
+                ))}
+              </div>
             </header>
 
             {loading ? (
@@ -393,6 +478,8 @@ export default function JobsFeed() {
                   <FeaturedMatch
                     job={featuredJob}
                     onViewDetails={handleOpenDrawer}
+                    onApply={handleStartApply}
+                    isApplied={appliedJobIds.has(featuredJob.id)}
                   />
                 )}
 
@@ -406,6 +493,8 @@ export default function JobsFeed() {
                           key={job.id}
                           job={job}
                           onSelect={handleOpenDrawer}
+                          onApply={handleStartApply}
+                          isApplied={appliedJobIds.has(job.id)}
                         />
                       ))}
                     </div>
@@ -439,6 +528,44 @@ export default function JobsFeed() {
         error={drawerError}
         onClose={handleCloseDrawer}
         onRetry={() => fetchDrawerDetail(jobParam)}
+      />
+
+      {/* Application Pathways & Submission Modals */}
+      <ApplyPathwaysModal
+        job={applyTargetJob}
+        isOpen={isPathwaysOpen}
+        onClose={() => setIsPathwaysOpen(false)}
+        onSelectPathway={handleSelectPathway}
+      />
+
+      <StandardApplyModal
+        job={applyTargetJob}
+        isOpen={isStandardApplyOpen}
+        onClose={() => setIsStandardApplyOpen(false)}
+        onBackToPathways={handleBackToPathways}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
+
+      <TailoredAiModal
+        job={applyTargetJob}
+        isOpen={isTailoredAiOpen}
+        onClose={() => setIsTailoredAiOpen(false)}
+        onBackToPathways={handleBackToPathways}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
+
+      <AutoApplyModal
+        job={applyTargetJob}
+        isOpen={isAutoApplyOpen}
+        onClose={() => setIsAutoApplyOpen(false)}
+        onBackToPathways={handleBackToPathways}
+        onSaveRules={() => {}}
+      />
+
+      <ApplicationSubmittedModal
+        submission={lastSubmission}
+        isOpen={isSubmittedOpen}
+        onClose={() => setIsSubmittedOpen(false)}
       />
     </div>
   );

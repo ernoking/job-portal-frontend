@@ -7,8 +7,9 @@ import AccordionRow from '../components/profile/AccordionRow';
 import SkillChip from '../components/profile/SkillChip';
 import LanguageRow from '../components/profile/LanguageRow';
 import ActionBar from '../components/profile/ActionBar';
-import { getProfile, confirmProfile } from '../api/profile';
-import { clearDraft } from '../onboarding/draftStore';
+import VerifyPhoneModal from '../components/profile/VerifyPhoneModal';
+import { getProfile } from '../api/profile';
+import { clearDraft, setDraft } from '../onboarding/draftStore';
 import './ProfileReview.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,6 +38,10 @@ export default function ProfileReview() {
 
   // Adding language state
   const [newLanguages, setNewLanguages] = useState([]);
+
+  // Phone verification state
+  const [isVerifyPhoneOpen, setIsVerifyPhoneOpen] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
 
   // Submitting / confirm state
   const submitPending = useRef(false);
@@ -242,7 +247,7 @@ export default function ProfileReview() {
     setNewLanguages((prev) => prev.filter((l) => l.id !== id));
   };
 
-  // Confirm profile handler
+  // Confirm profile handler - transitions to Career Goals review
   const handleConfirm = async () => {
     if (submitPending.current) return;
     if (isAnyEditOpen) {
@@ -255,16 +260,11 @@ export default function ProfileReview() {
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      const res = await confirmProfile(profile);
-      if (res && res.success !== false) {
-        clearDraft();
-        navigate('/matches');
-      } else {
-        setSubmitError('Failed to confirm profile. Please try again.');
-        setIsSubmitting(false);
-      }
+      // Save working profile state to draft store
+      setDraft({ profile });
+      navigate('/onboarding/goals');
     } catch (err) {
-      setSubmitError(err?.message || 'Failed to confirm profile. Please try again.');
+      setSubmitError(err?.message || 'Failed to proceed to career goals. Please try again.');
       setIsSubmitting(false);
     } finally {
       submitPending.current = false;
@@ -274,7 +274,14 @@ export default function ProfileReview() {
   const personalItems = [
     { key: 'name', label: 'NAME', placeholder: 'Your full name' },
     { key: 'email', label: 'EMAIL', type: 'email', placeholder: 'your.email@example.com' },
-    { key: 'phone', label: 'PHONE', type: 'tel', placeholder: 'Phone number' },
+    {
+      key: 'phone',
+      label: 'PHONE',
+      type: 'tel',
+      placeholder: 'Phone number',
+      onVerify: () => setIsVerifyPhoneOpen(true),
+      isVerified: isPhoneVerified,
+    },
     { key: 'location', label: 'LOCATION', placeholder: 'City, Country' },
   ];
 
@@ -495,6 +502,7 @@ export default function ProfileReview() {
               <ActionBar
                 onConfirm={handleConfirm}
                 onCancel={() => clearDraft()}
+                confirmLabel="Review career goals"
                 isSubmitting={isSubmitting}
                 isBlocked={isAnyEditOpen}
                 blockedMessage={blockedMessage}
@@ -502,6 +510,13 @@ export default function ProfileReview() {
               />
             </div>
           )}
+
+          <VerifyPhoneModal
+            isOpen={isVerifyPhoneOpen}
+            phone={profile?.personal?.phone}
+            onClose={() => setIsVerifyPhoneOpen(false)}
+            onVerified={() => setIsPhoneVerified(true)}
+          />
         </div>
       </main>
     </div>

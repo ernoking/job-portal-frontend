@@ -129,6 +129,15 @@ export default function AppNav({ activeTab }) {
                 )}
               </div>
               <div className="app-nav-popover-divider" />
+              <Link
+                to="/settings"
+                className="app-nav-popover-link"
+                onClick={() => setPopoverOpen(false)}
+                data-testid="nav-profile-settings-link"
+              >
+                Profile &amp; Settings
+              </Link>
+              <div className="app-nav-popover-divider" />
               <button
                 type="button"
                 className="app-nav-popover-logout"

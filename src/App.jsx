@@ -7,8 +7,10 @@ import Dashboard from './pages/Dashboard'
 import ResumeUpload from './pages/ResumeUpload'
 import CareerPreferences from './pages/CareerPreferences'
 import ProfileReview from './pages/ProfileReview'
+import ReviewCareerGoals from './pages/ReviewCareerGoals'
 import JobsFeed from './pages/JobsFeed'
 import ApplicationTracker from './pages/ApplicationTracker'
+import ProfileSettings from './pages/ProfileSettings'
 
 function ProtectedRoute({ children }) {
   const { status } = useAuth()
@@ -80,6 +82,14 @@ export default function App() {
           }
         />
         <Route
+          path="/onboarding/goals"
+          element={
+            <ProtectedRoute>
+              <ReviewCareerGoals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/matches"
           element={
             <ProtectedRoute>
@@ -92,6 +102,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ApplicationTracker />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <ProfileSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfileSettings />
             </ProtectedRoute>
           }
         />

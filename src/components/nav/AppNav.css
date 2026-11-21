@@ -197,6 +197,23 @@
   margin: 8px 0;
 }
 
+.app-nav-popover-link {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.app-nav-popover-link:hover {
+  color: var(--forest);
+  font-weight: 600;
+}
+
 .app-nav-popover-logout {
   width: 100%;
   background: none;

@@ -5,6 +5,7 @@ import './ActionBar.css';
 export default function ActionBar({
   onConfirm,
   onCancel,
+  confirmLabel = 'Confirm profile and view matches',
   isSubmitting = false,
   isBlocked = false,
   blockedMessage = '',
@@ -53,7 +54,7 @@ export default function ActionBar({
           data-testid="confirm-profile-btn"
         >
           <span className="action-bar-confirm-label">
-            {isSubmitting ? 'Saving...' : 'Confirm profile and view matches'}
+            {isSubmitting ? 'Saving...' : confirmLabel}
           </span>
           <svg
             className="action-bar-arrow"
