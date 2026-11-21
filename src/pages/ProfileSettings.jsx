@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import VerifyPhoneModal from '../components/profile/VerifyPhoneModal';
@@ -125,10 +125,6 @@ export default function ProfileSettings() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Subscription state (AJSP-20)
-  const [subscriptionPlan, setSubscriptionPlan] = useState('Pro');
-  const [subscriptionFeedback, setSubscriptionFeedback] = useState(null);
-
   // Personal Info Form changes
   const handleInputChange = (field, value) => {
     setProfileData((prev) => {
@@ -249,27 +245,6 @@ export default function ProfileSettings() {
     }
   };
 
-  // Subscription management (AJSP-20)
-  const handleToggleSubscription = () => {
-    if (subscriptionPlan === 'Pro') {
-      setSubscriptionPlan('Free');
-      setSubscriptionFeedback('Your Pro subscription has been cancelled. You will retain access until the end of this billing cycle.');
-    } else {
-      setSubscriptionPlan('Pro');
-      setSubscriptionFeedback('Welcome back to Matchwise Pro!');
-    }
-    setTimeout(() => setSubscriptionFeedback(null), 4000);
-  };
-
-  // Avatar initials
-  const initials = useMemo(() => {
-    const parts = (profileData.name || 'Alex Morgan').trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return (profileData.name || 'AM').slice(0, 2).toUpperCase();
-  }, [profileData.name]);
-
   return (
     <div className="profile-settings-page">
       <AppNav activeTab="profile" />
@@ -308,17 +283,25 @@ export default function ProfileSettings() {
 
           {/* Profile Header Row */}
           <div className="profile-header-card">
-            <div className="profile-avatar-circle" data-testid="profile-avatar">
-              {initials}
-              <div className="profile-avatar-camera-badge" aria-label="Camera icon">
-                📷
-              </div>
+            <div
+              className="profile-avatar-card"
+              data-testid="profile-avatar"
+              onClick={() => alert('Photo upload dialog')}
+              role="button"
+              tabIndex={0}
+              aria-label="Upload profile photo"
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#65756c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              <span className="profile-avatar-upload-text">Upload photo</span>
             </div>
 
             <div className="profile-identity-col">
               <div className="profile-identity-name-row">
                 <h1 className="profile-identity-name">{profileData.name}</h1>
-                <span className="profile-inline-edit-hint">Editable</span>
+                <span className="profile-inline-edit-tag">Edit</span>
               </div>
               <p className="profile-identity-title">{profileData.title}</p>
               <div className="profile-identity-contact-row">
@@ -336,7 +319,7 @@ export default function ProfileSettings() {
             <div className="profile-photo-actions">
               <button
                 type="button"
-                className="profile-photo-action-btn primary"
+                className="profile-photo-action-btn secondary"
                 onClick={() => alert('Photo upload dialog')}
                 data-testid="upload-photo-btn"
               >
@@ -344,7 +327,7 @@ export default function ProfileSettings() {
               </button>
               <button
                 type="button"
-                className="profile-photo-action-btn secondary"
+                className="profile-photo-action-btn primary"
                 onClick={() => alert('Extracting photo from uploaded CV...')}
                 data-testid="extract-photo-cv-btn"
               >
@@ -550,14 +533,6 @@ export default function ProfileSettings() {
                 <h2 id="projects-heading" className="profile-card-title">
                   Projects
                 </h2>
-                <button
-                  type="button"
-                  className="profile-card-header-btn"
-                  onClick={() => alert('Add project dialog')}
-                  data-testid="add-project-btn"
-                >
-                  + Add project
-                </button>
               </div>
 
               <div className="profile-projects-list">
@@ -577,6 +552,7 @@ export default function ProfileSettings() {
                       >
                         Edit
                       </button>
+                      <span className="profile-action-bullet">·</span>
                       <button
                         type="button"
                         className="profile-inline-action-btn danger"
@@ -587,12 +563,21 @@ export default function ProfileSettings() {
                           }))
                         }
                       >
-                        − Remove
+                        Remove
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
+
+              <button
+                type="button"
+                className="profile-card-bottom-btn"
+                onClick={() => alert('Add project dialog')}
+                data-testid="add-project-btn"
+              >
+                + Add project
+              </button>
             </section>
 
             {/* 5. Education and Certifications */}
@@ -601,24 +586,6 @@ export default function ProfileSettings() {
                 <h2 id="education-heading" className="profile-card-title">
                   Education and certifications
                 </h2>
-                <div className="profile-header-actions-group">
-                  <button
-                    type="button"
-                    className="profile-card-header-btn"
-                    onClick={() => alert('Add education dialog')}
-                    data-testid="add-education-btn"
-                  >
-                    + Add education
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-card-header-btn"
-                    onClick={() => alert('Add certification dialog')}
-                    data-testid="add-certification-btn"
-                  >
-                    + Add certification
-                  </button>
-                </div>
               </div>
 
               <div className="profile-education-list">
@@ -627,7 +594,9 @@ export default function ProfileSettings() {
                     <div className="profile-education-info">
                       <div className="profile-education-title-row">
                         <h3 className="profile-education-degree">{edu.degree}</h3>
-                        <span className="profile-type-tag">{edu.type}</span>
+                        <span className={`profile-edu-badge ${edu.type?.toLowerCase().includes('cert') ? 'is-cert' : ''}`}>
+                          {edu.type}
+                        </span>
                       </div>
                       <p className="profile-education-meta">
                         {edu.school} · {edu.year}
@@ -641,6 +610,7 @@ export default function ProfileSettings() {
                       >
                         Edit
                       </button>
+                      <span className="profile-action-bullet">·</span>
                       <button
                         type="button"
                         className="profile-inline-action-btn danger"
@@ -651,11 +621,30 @@ export default function ProfileSettings() {
                           }))
                         }
                       >
-                        − Remove
+                        Remove
                       </button>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="profile-card-bottom-btn-group">
+                <button
+                  type="button"
+                  className="profile-card-bottom-btn"
+                  onClick={() => alert('Add education dialog')}
+                  data-testid="add-education-btn"
+                >
+                  + Add education
+                </button>
+                <button
+                  type="button"
+                  className="profile-card-bottom-btn"
+                  onClick={() => alert('Add certification dialog')}
+                  data-testid="add-certification-btn"
+                >
+                  + Add certification
+                </button>
               </div>
             </section>
 
@@ -891,62 +880,29 @@ export default function ProfileSettings() {
               </p>
             </section>
 
-            {/* 3. Plan & Subscription (AJSP-20) */}
-            <section className="profile-card" aria-labelledby="plan-heading">
-              <div className="profile-card-header">
-                <h2 id="plan-heading" className="profile-card-title">
-                  Plan &amp; subscription
-                </h2>
-                <span className={`profile-plan-badge ${subscriptionPlan === 'Pro' ? 'is-pro' : 'is-free'}`}>
-                  Matchwise {subscriptionPlan}
-                </span>
-              </div>
-
-              <p className="profile-card-subtitle">
-                {subscriptionPlan === 'Pro'
-                  ? 'Includes unlimited applications, AI-tailored cover letters, automated match routing and priority recruiter views.'
-                  : 'Free tier includes standard job browsing and manual applications. Upgrade to Pro for AI tailoring.'}
-              </p>
-
-              {subscriptionFeedback && (
-                <p className="profile-subscription-feedback" role="status">
-                  {subscriptionFeedback}
-                </p>
-              )}
-
-              <div className="profile-subscription-actions">
-                <button
-                  type="button"
-                  className={`profile-subscription-btn ${subscriptionPlan === 'Pro' ? 'cancel' : 'upgrade'}`}
-                  onClick={handleToggleSubscription}
-                  data-testid="toggle-subscription-btn"
-                >
-                  {subscriptionPlan === 'Pro' ? 'Cancel subscription' : 'Upgrade to Pro'}
-                </button>
-              </div>
-            </section>
-
-            {/* 4. Danger Zone / Delete Account (Figma 294:154, AJSP-11, AJSP-60) */}
-            <section className="profile-card is-danger-zone" aria-labelledby="danger-heading">
-              <div className="profile-card-header">
-                <h2 id="danger-heading" className="profile-danger-title">
-                  Delete account
-                </h2>
-              </div>
-              <p className="profile-danger-text">
-                Permanently delete your Matchwise account, uploaded CV, profile and saved matches. This action cannot be undone.
-              </p>
-              <button
-                type="button"
-                className="profile-danger-btn"
-                onClick={() => setIsDeleteModalOpen(true)}
-                data-testid="open-delete-account-modal-btn"
-              >
-                Delete account
-              </button>
-            </section>
+            {/* 3. Company Exclusions is the last card in right column in Figma 199:104 */}
           </div>
         </div>
+
+        {/* Full-Width Delete Account Banner (Figma 199:104) */}
+        <section className="profile-delete-banner" aria-labelledby="delete-banner-heading">
+          <div className="profile-delete-banner-text">
+            <h2 id="delete-banner-heading" className="profile-delete-banner-title">
+              Delete account
+            </h2>
+            <p className="profile-delete-banner-desc">
+              Permanently delete your Matchwise account, uploaded CV, profile and saved matches. This action cannot be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="profile-delete-banner-btn"
+            onClick={() => setIsDeleteModalOpen(true)}
+            data-testid="open-delete-account-modal-btn"
+          >
+            Delete account
+          </button>
+        </section>
       </main>
 
       {/* Modals */}

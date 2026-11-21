@@ -64,8 +64,11 @@ export default function Login() {
 
       const sessionData = await loginUser(formData)
       signIn(sessionData, formData.rememberMe)
-      // TODO: if the user already confirmed a profile, go to /matches
-      const destination = location.state?.from?.pathname || location.state?.from || '/upload'
+      // Keep previous flow: preserve destination if coming from a non-profile path, otherwise default to previous flow (/upload)
+      const fromPath = location.state?.from?.pathname || location.state?.from
+      const destination = (fromPath && !fromPath.startsWith('/settings') && !fromPath.startsWith('/profile'))
+        ? fromPath
+        : '/upload'
       navigate(destination, { replace: true })
 
     } catch (err) {
