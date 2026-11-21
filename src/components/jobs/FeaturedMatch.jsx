@@ -4,6 +4,8 @@ import './FeaturedMatch.css';
 export default function FeaturedMatch({
   job,
   onViewDetails,
+  onApply,
+  isApplied = false,
 }) {
   if (!job) return null;
 
@@ -111,18 +113,20 @@ export default function FeaturedMatch({
           View full match →
         </button>
 
-        {/* Apply now is disabled until backend application submission is wired up */}
-        <button
-          type="button"
-          className="featured-apply-btn is-disabled"
-          aria-disabled="true"
-          title="Applying isn't available yet"
-          onClick={(e) => e.preventDefault()}
-          data-testid="featured-apply-btn"
-        >
-          <span>Apply now</span>
-          <span className="sr-only">Applying isn't available yet</span>
-        </button>
+        {isApplied ? (
+          <span className="featured-applied-badge" data-testid="featured-applied-badge">
+            ✓ Applied
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="featured-apply-btn"
+            onClick={() => onApply?.(job)}
+            data-testid="featured-apply-btn"
+          >
+            Apply now
+          </button>
+        )}
       </div>
     </article>
   );

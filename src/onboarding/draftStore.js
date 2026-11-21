@@ -53,6 +53,8 @@ export function setDraft(partial) {
   return currentDraft;
 }
 
+export const saveDraft = setDraft;
+
 export function clearDraft() {
   currentDraft = { preferences: null, cvId: null };
   try {

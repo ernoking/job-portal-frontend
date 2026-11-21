@@ -45,7 +45,16 @@ export default function InfoGrid({
           <div key={item.key} className="info-grid-item">
             <dt className="info-grid-label">{item.label}</dt>
             <dd className={`info-grid-value ${isEmpty ? 'is-empty' : ''}`}>
-              {isEmpty ? 'Not provided' : val}
+              <span>{isEmpty ? 'Not provided' : val}</span>
+              {item.key === 'phone' && !isEmpty && item.onVerify && (
+                <button
+                  type="button"
+                  className={`info-grid-verify-btn ${item.isVerified ? 'is-verified' : ''}`}
+                  onClick={item.onVerify}
+                >
+                  {item.isVerified ? '✓ Verified' : 'Verify'}
+                </button>
+              )}
             </dd>
           </div>
         );

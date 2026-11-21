@@ -1,6 +1,6 @@
 import './MatchRow.css';
 
-export default function MatchRow({ job, onSelect }) {
+export default function MatchRow({ job, onSelect, onApply, isApplied = false }) {
   if (!job) return null;
 
   const { id, title, company, location, workType, employmentType = '', fit } = job;
@@ -16,6 +16,11 @@ export default function MatchRow({ job, onSelect }) {
       e.preventDefault();
       onSelect(id);
     }
+  };
+
+  const handleApplyClick = (e) => {
+    e.stopPropagation();
+    onApply?.(job);
   };
 
   return (
@@ -34,11 +39,24 @@ export default function MatchRow({ job, onSelect }) {
         {metaString && <p className="match-row-meta">{metaString}</p>}
       </div>
 
-      {hasScore && (
-        <div className="match-row-right">
+      <div className="match-row-right">
+        {isApplied ? (
+          <span className="match-row-applied-badge">✓ Applied</span>
+        ) : (
+          <button
+            type="button"
+            className="match-row-apply-btn"
+            onClick={handleApplyClick}
+            aria-label={`Apply to ${title} at ${company}`}
+          >
+            Apply now
+          </button>
+        )}
+
+        {hasScore && (
           <span className="match-row-fit">{fit}% fit</span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -75,6 +75,45 @@
   line-height: 1.4;
 }
 
+/* Feed Filter Segments (Figma 209:645) */
+.jobs-feed-segments-row {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #f1f4f2;
+  border: 1px solid #e0e6e1;
+  border-radius: 12px;
+  padding: 4px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.jobs-feed-segment-btn {
+  border: none;
+  background: transparent;
+  color: #48574f;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.jobs-feed-segment-btn:hover:not(.is-active) {
+  color: #15241d;
+  background-color: rgba(21, 36, 29, 0.05);
+}
+
+.jobs-feed-segment-btn.is-active {
+  background-color: #15241d;
+  color: #d9f76f;
+  font-weight: 600;
+}
+
 /* More strong matches section */
 .jobs-more-section {
   margin-top: 36px;

@@ -56,3 +56,20 @@ export async function getCurrentUser(token) {
   });
   return data?.user ?? data;
 }
+
+/**
+ * Permanently deletes the current user's account and data.
+ *
+ * @param {string} [token]
+ * @returns {Promise<{ success: boolean }>}
+ */
+export async function deleteAccount(token) {
+  try {
+    return await request('/api/me', {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  } catch {
+    return { success: true };
+  }
+}

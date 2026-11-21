@@ -1,0 +1,328 @@
+.review-goals-page {
+  min-height: 100vh;
+  background-color: var(--page, #fbfcfa);
+  display: flex;
+  flex-direction: column;
+}
+
+.review-goals-main {
+  flex: 1;
+  padding: 32px 24px 80px;
+  display: flex;
+  justify-content: center;
+}
+
+.review-goals-container {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-goals-back-link {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #74827a;
+  text-decoration: none;
+  margin-bottom: 24px;
+  display: inline-block;
+  transition: color 0.15s ease;
+}
+
+.review-goals-back-link:hover {
+  color: #15241d;
+}
+
+.review-goals-heading-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.review-goals-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background-color: #d9f76f;
+  color: #132a1b;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 24px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0px 4px 12px rgba(166, 200, 65, 0.2);
+}
+
+.review-goals-heading-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-goals-title {
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 30px;
+  font-weight: 700;
+  color: #15241d;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.review-goals-subtitle {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 13px;
+  color: #627068;
+  margin: 0;
+}
+
+.review-goals-card {
+  background-color: #ffffff;
+  border: 1px solid #e4eae5;
+  border-radius: 22px;
+  padding: 32px 34px;
+  box-shadow: 0px 18px 27.5px rgba(40, 65, 51, 0.05);
+  margin-bottom: 24px;
+}
+
+.review-goals-card-title {
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: #15241d;
+  margin: 0 0 20px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f4f1;
+}
+
+.review-goals-loading {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 14px;
+  color: #627068;
+  padding: 20px 0;
+}
+
+.review-goals-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.review-goals-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-goals-label {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #53635a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.review-goals-tags-container {
+  background-color: #fbfcfb;
+  border: 1px solid #dbe3dd;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
+  transition: border-color 0.15s ease;
+}
+
+.review-goals-tags-container:focus-within {
+  border-color: #92ad48;
+  background-color: #ffffff;
+}
+
+.review-goals-tag {
+  background-color: #132a1b;
+  border: 1px solid #132a1b;
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #d9f76f;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.review-goals-tag-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #d9f76f;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.review-goals-tag-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 13.5px;
+  color: #15241d;
+  flex: 1;
+  min-width: 140px;
+  padding: 4px 6px;
+}
+
+.review-goals-tag-input::placeholder {
+  color: #8c9791;
+}
+
+.review-goals-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-goals-pill {
+  background-color: #ffffff;
+  border: 1px solid #dbe3dd;
+  border-radius: 20px;
+  padding: 9px 18px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #35473f;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.review-goals-pill:hover {
+  border-color: #132a1b;
+}
+
+.review-goals-pill.is-selected {
+  background-color: #132a1b;
+  border-color: #132a1b;
+  color: #d9f76f;
+}
+
+.review-goals-salary-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.review-goals-salary-input {
+  flex: 1;
+  background-color: #fbfcfb;
+  border: 1px solid #dbe3dd;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 13.5px;
+  color: #15241d;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.review-goals-salary-input:focus {
+  border-color: #92ad48;
+  background-color: #ffffff;
+}
+
+.review-goals-currency-select {
+  position: relative;
+}
+
+.review-goals-currency-btn {
+  background-color: #ffffff;
+  border: 1px solid #dbe3dd;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #35473f;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.review-goals-currency-btn:hover {
+  border-color: #132a1b;
+}
+
+.review-goals-currency-chevron {
+  color: #8c9791;
+  font-size: 12px;
+}
+
+.review-goals-currency-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #dbe3dd;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(20, 41, 28, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  z-index: 20;
+  min-width: 90px;
+}
+
+.review-goals-currency-option {
+  padding: 8px 12px;
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #35473f;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.review-goals-currency-option:hover,
+.review-goals-currency-option.is-active {
+  background-color: #f1f5e8;
+  color: #132a1b;
+}
+
+.review-goals-helper-text {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 12px;
+  color: #8c9791;
+  margin: 0;
+}
+
+.review-goals-action-bar-wrapper {
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .review-goals-main {
+    padding: 20px 16px 60px;
+  }
+  .review-goals-card {
+    padding: 24px 20px;
+  }
+  .review-goals-title {
+    font-size: 24px;
+  }
+  .review-goals-salary-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
