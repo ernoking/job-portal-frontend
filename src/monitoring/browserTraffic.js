@@ -9,6 +9,8 @@ const monitor = createApiTrafficMonitor({
   baseUrl: window.location.href,
   mockApi: env.VITE_USE_MOCK_API === 'true',
   mockJobs: env.VITE_USE_MOCK_JOBS === 'true',
+  captureRequests: env.VITE_FRONTEND_TELEMETRY_REQUESTS_ENABLED === undefined
+    ? trafficConfig.captureRequests : env.VITE_FRONTEND_TELEMETRY_REQUESTS_ENABLED === 'true',
 });
 
 export const monitoredFetch = monitor.fetch;
