@@ -43,6 +43,31 @@ function handleUnauthorized() {
  * @returns {Promise<any>}
  */
 export async function request(path, options = {}) {
+  const { timeoutMs, ...fetchOptions } = options;
+  if (!timeoutMs) return performRequest(path, fetchOptions);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = options.signal
+    ? AbortSignal.any([options.signal, controller.signal])
+    : controller.signal;
+  try {
+    const data = await performRequest(path, { ...fetchOptions, signal });
+    signal.throwIfAborted();
+    return data;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError('The request took too long. Please try again.', 0, {
+        error: { code: 'REQUEST_TIMEOUT' },
+      });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function performRequest(path, options) {
   const url = path.startsWith('/api')
     ? path
     : `/api${path.startsWith('/') ? '' : '/'}${path}`;

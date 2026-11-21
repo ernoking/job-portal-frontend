@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/profile/AppHeader';
 import ProfileSection from '../components/profile/ProfileSection';
@@ -39,6 +39,7 @@ export default function ProfileReview() {
   const [newLanguages, setNewLanguages] = useState([]);
 
   // Submitting / confirm state
+  const submitPending = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [confirmBlockedAttempted, setConfirmBlockedAttempted] = useState(false);
@@ -243,12 +244,14 @@ export default function ProfileReview() {
 
   // Confirm profile handler
   const handleConfirm = async () => {
+    if (submitPending.current) return;
     if (isAnyEditOpen) {
       setConfirmBlockedAttempted(true);
       return;
     }
 
     setConfirmBlockedAttempted(false);
+    submitPending.current = true;
     setIsSubmitting(true);
     setSubmitError('');
     try {
@@ -263,6 +266,8 @@ export default function ProfileReview() {
     } catch (err) {
       setSubmitError(err?.message || 'Failed to confirm profile. Please try again.');
       setIsSubmitting(false);
+    } finally {
+      submitPending.current = false;
     }
   };
 
@@ -336,7 +341,7 @@ export default function ProfileReview() {
           </div>
 
           {/* Main Card */}
-          <div className="profile-card" data-testid="profile-card">
+          <div className="profile-card" data-testid="profile-card" inert={isSubmitting} aria-busy={isSubmitting}>
             {loading ? (
               <div className="profile-loading-state" data-testid="profile-loading">
                 <p className="profile-loading-text">Loading your profile...</p>

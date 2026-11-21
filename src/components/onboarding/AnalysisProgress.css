@@ -1,0 +1,76 @@
+/* Matchwise Figma desktop 89:293 and mobile Career Preferences 210:392. */
+.analysis-progress {
+  padding-block: 67px 40px;
+  color: var(--on-dark-text, #F2F5EE);
+  font-family: var(--font-family);
+}
+.analysis-progress-eyebrow {
+  color: var(--lime, #DDF86B);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 22px;
+}
+.analysis-progress h2 {
+  margin: 0 0 30px;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.analysis-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.analysis-progress-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--lime, #DDF86B);
+  color: var(--forest-deep, #132A1C);
+  flex-shrink: 0;
+}
+.analysis-progress p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.analysis-progress-track {
+  height: 5px;
+  margin-top: 26px;
+  border-radius: 999px;
+  background: var(--forest-track, #274236);
+  overflow: hidden;
+}
+.analysis-progress-fill {
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lime, #DDF86B);
+  animation: analysis-progress-slide 1.5s ease-in-out infinite alternate;
+}
+.analysis-progress .analysis-progress-caption {
+  color: var(--on-dark-muted, #B5C4BA);
+  margin-top: 8px;
+}
+@keyframes analysis-progress-slide {
+  from { transform: translateX(-80%); }
+  to { transform: translateX(200%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .analysis-progress-fill { animation: none; }
+}
+@media (max-width: 900px) {
+  .onboarding-step-1 .onboarding-block { flex-direction: column; }
+  .onboarding-step-1 .resume-analysis-panel {
+    display: block;
+    width: 100%;
+    padding-inline: 24px;
+    border-radius: 20px;
+  }
+  .analysis-progress { padding-block: 24px; }
+  .analysis-progress h2 { font-size: 24px; margin-bottom: 20px; }
+}

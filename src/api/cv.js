@@ -3,7 +3,7 @@ import { request } from './http';
 
 // TODO(AJSP-5): confirm endpoints, request/response shape, file upload format (multipart) and error format with the backend team
 
-export async function uploadCv(file) {
+export async function uploadCv(file, { signal } = {}) {
   if (USE_MOCK_API) {
     // In mock mode, simulate network delay and return fixture without making any network request
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -19,6 +19,8 @@ export async function uploadCv(file) {
   return await request('/api/cv/upload', {
     method: 'POST',
     body: formData,
+    signal,
+    timeoutMs: 60_000,
   });
 }
 

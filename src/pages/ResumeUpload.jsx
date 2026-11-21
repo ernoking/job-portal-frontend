@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OnboardingLayout from '../components/onboarding/OnboardingLayout';
 import DarkPanel from '../components/onboarding/DarkPanel';
+import AnalysisProgress from '../components/onboarding/AnalysisProgress';
 import DropZone from '../components/onboarding/DropZone';
+import { USE_MOCK_API } from '../api/config';
 import { generateCvProfile } from '../api/profile';
 import { getDraft, setDraft } from '../onboarding/draftStore';
 import { getCvDownloadUrl, listCvFiles, uploadCv } from '../api/cv';
@@ -10,6 +12,9 @@ import './ResumeUpload.css';
 
 export default function ResumeUpload() {
   const navigate = useNavigate();
+
+  const analysisRequest = useRef(null);
+  useEffect(() => () => analysisRequest.current?.abort(), []);
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedCvId, setUploadedCvId] = useState(() => getDraft().cvId);
@@ -38,6 +43,7 @@ export default function ResumeUpload() {
   };
 
   const handleFileSelect = (file, error) => {
+    if (analysisRequest.current) return;
     setSelectedFile(file);
     if (file) {
       setUploadedCvId(null);
@@ -48,15 +54,17 @@ export default function ResumeUpload() {
   };
 
   const handleStartAnalysis = async () => {
-    if ((!selectedFile && !uploadedCvId) || isAnalysing) return;
+    if ((!selectedFile && !uploadedCvId) || analysisRequest.current) return;
 
+    const controller = new AbortController();
+    analysisRequest.current = controller;
     setIsAnalysing(true);
     setUploadError('');
 
     try {
       let cvId = uploadedCvId;
       if (!cvId) {
-        const result = await uploadCv(selectedFile);
+        const result = await uploadCv(selectedFile, { signal: controller.signal });
         if (!result?.success) throw new Error('Failed to upload CV. Please try again.');
         cvId = result.cv?.id;
         if (cvId) {
@@ -65,11 +73,17 @@ export default function ResumeUpload() {
           setSavedFiles((files) => [result.cv, ...files.filter((file) => file.id !== cvId)]);
         }
       }
-      if (cvId) await generateCvProfile(cvId);
+      if (!cvId && !USE_MOCK_API) throw new Error('The CV upload could not be confirmed. Please try again.');
+      if (cvId) await generateCvProfile(cvId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       navigate('/preferences');
     } catch (err) {
-      setUploadError(err?.message || 'Failed to upload CV. Please try again.');
-      setIsAnalysing(false);
+      if (!controller.signal.aborted) {
+        setUploadError(err?.message || 'Failed to upload CV. Please try again.');
+      }
+    } finally {
+      analysisRequest.current = null;
+      if (!controller.signal.aborted) setIsAnalysing(false);
     }
   };
 
@@ -110,7 +124,7 @@ export default function ResumeUpload() {
   );
 
   const whitePanelContent = (
-    <div className="resume-right-content">
+    <div className="resume-right-content" aria-busy={isAnalysing}>
       <div className="resume-right-header">
         <div className="resume-step-badge" aria-hidden="true">01</div>
         <div className="resume-title-group">
@@ -123,6 +137,7 @@ export default function ResumeUpload() {
         file={selectedFile}
         onFileSelect={handleFileSelect}
         errorMessage={fileError}
+        disabled={isAnalysing}
       />
 
       {savedFiles.length > 0 && (
@@ -139,7 +154,7 @@ export default function ResumeUpload() {
               <option value="">Select a saved CV</option>
               {savedFiles.map((file) => <option key={file.id} value={file.id}>{file.fileName}</option>)}
             </select>
-            {uploadedCvId && <button type="button" onClick={() => downloadCv(uploadedCvId)}>Download CV</button>}
+            {uploadedCvId && <button type="button" disabled={isAnalysing} onClick={() => downloadCv(uploadedCvId)}>Download CV</button>}
           </div>
           {uploadedCvId && <p role="status">You can analyse this CV again without re-uploading.</p>}
         </div>
@@ -154,7 +169,7 @@ export default function ResumeUpload() {
 
       <button
         type="button"
-        className={`resume-analyse-btn ${(selectedFile || uploadedCvId) ? 'is-enabled' : 'is-disabled'}`}
+        className={`resume-analyse-btn ${(selectedFile || uploadedCvId) && !isAnalysing ? 'is-enabled' : 'is-disabled'}`}
         disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
         aria-disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
         onClick={handleStartAnalysis}
@@ -178,7 +193,9 @@ export default function ResumeUpload() {
       stepTitle="Resume upload"
       pillWidth={171}
       rightInset={95}
-      darkPanel={<DarkPanel height={null}>{darkPanelContent}</DarkPanel>}
+      darkPanel={<DarkPanel height={null} className={isAnalysing ? 'resume-analysis-panel' : ''}>
+        {isAnalysing ? <AnalysisProgress uploaded={Boolean(uploadedCvId)} /> : darkPanelContent}
+      </DarkPanel>}
       whitePanel={whitePanelContent}
       testId="onboarding-step-1"
     />
