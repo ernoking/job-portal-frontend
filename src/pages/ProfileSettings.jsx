@@ -308,30 +308,10 @@ export default function ProfileSettings() {
 
           {/* Profile Header Row */}
           <div className="profile-header-card">
-            <div className="profile-avatar-wrapper">
-              <div className="profile-avatar-circle" data-testid="profile-avatar">
-                {initials}
-                <div className="profile-avatar-camera-badge" aria-label="Camera icon">
-                  📷
-                </div>
-              </div>
-              <div className="profile-avatar-actions">
-                <button
-                  type="button"
-                  className="profile-avatar-action-btn primary"
-                  onClick={() => alert('Photo upload dialog')}
-                  data-testid="upload-photo-btn"
-                >
-                  Upload photo
-                </button>
-                <button
-                  type="button"
-                  className="profile-avatar-action-btn secondary"
-                  onClick={() => alert('Extracting photo from uploaded CV...')}
-                  data-testid="extract-photo-cv-btn"
-                >
-                  Extract from CV
-                </button>
+            <div className="profile-avatar-circle" data-testid="profile-avatar">
+              {initials}
+              <div className="profile-avatar-camera-badge" aria-label="Camera icon">
+                📷
               </div>
             </div>
 
@@ -351,6 +331,25 @@ export default function ProfileSettings() {
                   <span className="profile-verified-badge">✓ Verified</span>
                 )}
               </div>
+            </div>
+
+            <div className="profile-photo-actions">
+              <button
+                type="button"
+                className="profile-photo-action-btn primary"
+                onClick={() => alert('Photo upload dialog')}
+                data-testid="upload-photo-btn"
+              >
+                Upload photo
+              </button>
+              <button
+                type="button"
+                className="profile-photo-action-btn secondary"
+                onClick={() => alert('Extracting photo from uploaded CV...')}
+                data-testid="extract-photo-cv-btn"
+              >
+                Extract from CV
+              </button>
             </div>
           </div>
         </section>
@@ -816,11 +815,13 @@ export default function ProfileSettings() {
                 <h2 id="completion-heading" className="profile-card-title">
                   Profile completion
                 </h2>
-                <span className="profile-completion-pct">85%</span>
               </div>
 
-              <div className="profile-progress-track" aria-hidden="true">
-                <div className="profile-progress-fill" style={{ width: '85%' }} />
+              <div className="profile-progress-row">
+                <span className="profile-completion-pct">85%</span>
+                <div className="profile-progress-track" aria-hidden="true">
+                  <div className="profile-progress-fill" style={{ width: '85%' }} />
+                </div>
               </div>
 
               <ul className="profile-checklist" aria-label="Profile completion checklist">

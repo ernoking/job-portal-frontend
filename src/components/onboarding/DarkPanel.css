@@ -1,6 +1,7 @@
 .dark-panel {
   position: relative;
   width: 422px;
+  min-height: 620px;
   background-color: var(--forest-deep, #132A1C);
   border-radius: 28px;
   overflow: hidden;

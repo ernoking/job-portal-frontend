@@ -10,6 +10,14 @@ import { getDraft, setDraft } from '../onboarding/draftStore';
 import { getCvDownloadUrl, listCvFiles, uploadCv } from '../api/cv';
 import './ResumeUpload.css';
 
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
 export default function ResumeUpload() {
   const navigate = useNavigate();
 
@@ -133,38 +141,93 @@ export default function ResumeUpload() {
         </div>
       </div>
 
-      <DropZone
-        file={selectedFile}
-        onFileSelect={handleFileSelect}
-        errorMessage={fileError}
-        disabled={isAnalysing}
-      />
+      {selectedFile ? (
+        <div className="resume-file-card" data-testid="uploaded-file-card">
+          <div className="resume-file-icon" aria-hidden="true">
+            <span>{selectedFile.name.split('.').pop()?.toUpperCase() || 'PDF'}</span>
+          </div>
+          <div className="resume-file-details">
+            <div className="resume-file-title-row">
+              <span className="resume-file-name">{selectedFile.name}</span>
+              <span className="resume-file-badge">✓ Uploaded successfully</span>
+            </div>
+            <span className="resume-file-size">{formatBytes(selectedFile.size)}</span>
+          </div>
+          <button
+            type="button"
+            className="resume-file-delete-btn"
+            onClick={() => {
+              setSelectedFile(null);
+              setFileError(null);
+              setUploadError('');
+            }}
+            aria-label="Remove uploaded file"
+            data-testid="remove-file-btn"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <DropZone
+          file={null}
+          onFileSelect={handleFileSelect}
+          errorMessage={fileError}
+          disabled={isAnalysing}
+        />
+      )}
 
-      {savedFiles.length > 0 && (
+      {(fileError || uploadError) && (
+        <div className="resume-error-banner" role="alert" data-testid="upload-error">
+          <div className="resume-error-icon" aria-hidden="true">!</div>
+          <div className="resume-error-text">{fileError || uploadError}</div>
+        </div>
+      )}
+
+      {savedFiles.length > 0 && !selectedFile && (
         <div className="resume-saved-cv">
           <label htmlFor="saved-cv">Use a saved CV</label>
           <div className="resume-saved-cv-controls">
-            <select id="saved-cv" disabled={isAnalysing} value={uploadedCvId ?? ''} onChange={(event) => {
-              const cvId = event.target.value || null;
-              setUploadedCvId(cvId);
-              setSelectedFile(null);
-              setDraft({ cvId });
-              setUploadError('');
-            }}>
+            <select
+              id="saved-cv"
+              disabled={isAnalysing}
+              value={uploadedCvId ?? ''}
+              onChange={(event) => {
+                const cvId = event.target.value || null;
+                setUploadedCvId(cvId);
+                setSelectedFile(null);
+                setDraft({ cvId });
+                setUploadError('');
+              }}
+            >
               <option value="">Select a saved CV</option>
-              {savedFiles.map((file) => <option key={file.id} value={file.id}>{file.fileName}</option>)}
+              {savedFiles.map((file) => (
+                <option key={file.id} value={file.id}>
+                  {file.fileName}
+                </option>
+              ))}
             </select>
-            {uploadedCvId && <button type="button" disabled={isAnalysing} onClick={() => downloadCv(uploadedCvId)}>Download CV</button>}
+            {uploadedCvId && (
+              <button
+                type="button"
+                disabled={isAnalysing}
+                onClick={() => downloadCv(uploadedCvId)}
+              >
+                Download CV
+              </button>
+            )}
           </div>
-          {uploadedCvId && <p role="status">You can analyse this CV again without re-uploading.</p>}
+          {uploadedCvId && (
+            <p role="status">You can analyse this CV again without re-uploading.</p>
+          )}
         </div>
       )}
-      {savedFilesError && <p className="resume-upload-error" role="alert">{savedFilesError}</p>}
-
-      {uploadError && (
-        <div className="resume-upload-error" role="alert" data-testid="upload-error">
-          {uploadError}
-        </div>
+      {savedFilesError && (
+        <p className="resume-upload-error" role="alert">
+          {savedFilesError}
+        </p>
       )}
 
       <button

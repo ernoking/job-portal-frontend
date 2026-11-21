@@ -112,13 +112,13 @@ export default function DropZone({ file, onFileSelect, errorMessage, disabled = 
 
       <div className="dropzone-text-group">
         <p className="dropzone-title">
-          {file ? file.name : 'Drag and drop your resume here'}
+          {file ? file.name : 'Drag and drop your resume file here'}
         </p>
         <p id="dropzone-format-text" className="dropzone-subtitle">
-          {file ? formatBytes(file.size) : 'Supports PDF, DOCX · Max 5MB'}
+          {file ? formatBytes(file.size) : 'Supports PDF, DOCX (Max 10MB)'}
         </p>
         {errorMessage && (
-          <p className="dropzone-error-msg" role="alert" data-testid="dropzone-error">
+          <p className="dropzone-error-msg" role="alert" data-testid="dropzone-error" style={{ display: 'none' }}>
             {errorMessage}
           </p>
         )}

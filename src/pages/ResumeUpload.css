@@ -138,6 +138,136 @@
   line-height: 1;
 }
 
+/* Uploaded File Card (Figma 210:221) */
+.resume-file-card {
+  width: 498px;
+  max-width: 100%;
+  border: 1px solid #e1e7e2;
+  border-radius: 14px;
+  background-color: #fbfcfb;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.resume-file-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #e9f7cc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 700;
+  color: #15241d;
+  flex-shrink: 0;
+}
+
+.resume-file-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.resume-file-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resume-file-name {
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  color: #15241d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 210px;
+}
+
+.resume-file-badge {
+  background-color: #d9f76f;
+  color: #15241d;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.resume-file-size {
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: #66726b;
+}
+
+.resume-file-delete-btn {
+  background: none;
+  border: none;
+  color: #88998f;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.resume-file-delete-btn:hover {
+  color: #d92d20;
+  background-color: #fee4e2;
+}
+
+/* Error Alert Banner (Figma 210:278 & 210:335) */
+.resume-error-banner {
+  width: 498px;
+  max-width: 100%;
+  margin-top: 14px;
+  background-color: #fef3f2;
+  border: 1px solid #fecdca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resume-error-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #d92d20;
+  color: #ffffff;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resume-error-text {
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  color: #b42318;
+  line-height: 1.4;
+}
+
 .resume-upload-error {
   font-family: var(--font-family);
   font-size: 11px;
