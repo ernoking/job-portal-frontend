@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+
+Disallow: /dashboard
+Disallow: /upload
+Disallow: /preferences
+Disallow: /profile
+Disallow: /onboarding
+Disallow: /matches
+Disallow: /jobs
+Disallow: /applications
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://matchwise.tech/sitemap.xml
