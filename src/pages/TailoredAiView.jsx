@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
+import AiRateLimitBanner from '../components/common/AiRateLimitBanner';
 import { getMatchDetail } from '../api/jobs';
 import { MOCK_JOBS } from '../mocks/jobs';
 import './TailoredAiView.css';
@@ -14,6 +15,8 @@ export default function TailoredAiView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('tailored'); // 'tailored' | 'original'
   const [tone, setTone] = useState('professional'); // 'professional' | 'friendly' | 'concise'
+  const [aiError, setAiError] = useState(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const [coverLetter, setCoverLetter] = useState(
     `Dear Northstar Labs hiring team,\n\nI'm excited to apply for the Junior Product Designer role. Over five years at Acme Studio I led UX for the onboarding flow and maintained a design system used by four product squads, which maps directly to your team's core product workflow.\n\nMy research-led process, including sessions with 30+ users, and my Figma prototyping experience would help me contribute from day one, and I'd love to grow into motion design and product analytics with your team.\n\nThank you for your time and consideration.\n\nBest regards, Alex Morgan`
@@ -43,6 +46,40 @@ export default function TailoredAiView() {
       isMounted = false;
     };
   }, [id]);
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    setAiError(null);
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Handle potential rate limit or service unavailability
+    const chance = Math.random();
+    if (chance < 0.25) {
+      setAiError({
+        status: 429,
+        message: 'You have reached the AI generation limit for tailoring (5/5 requests). Upgrade to Premium or wait for the cooldown.',
+        data: { retryAfter: 45 },
+      });
+      setIsRegenerating(false);
+      return;
+    }
+
+    const candidate = currentJob?.title || 'the role';
+    if (tone === 'friendly') {
+      setCoverLetter(
+        `Hi Northstar Labs team!\n\nI'm thrilled to apply for ${candidate}. I love your approach to user experience and would be excited to bring my design systems and prototyping background to your squad.\n\nLooking forward to speaking with you!\n\nCheers, Alex Morgan`
+      );
+    } else if (tone === 'concise') {
+      setCoverLetter(
+        `Dear Hiring Manager,\n\nI am writing to apply for ${candidate}. With strong expertise in Figma design systems, prototyping, and user testing, I can deliver immediate impact to Northstar Labs' product goals.\n\nSincerely, Alex Morgan`
+      );
+    } else {
+      setCoverLetter(
+        `Dear Northstar Labs hiring team,\n\nI'm excited to apply for ${candidate}. Over five years at Acme Studio I led UX for the onboarding flow and maintained a design system used by four product squads, which maps directly to your team's core product workflow.\n\nBest regards, Alex Morgan`
+      );
+    }
+    setIsRegenerating(false);
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -184,14 +221,23 @@ export default function TailoredAiView() {
 
           {/* Right Column: Cover Letter */}
           <div className="tailored-col-card">
+            {aiError && (
+              <AiRateLimitBanner
+                error={aiError}
+                onRetry={handleRegenerate}
+                onDismiss={() => setAiError(null)}
+              />
+            )}
+
             <div className="tailored-card-header">
               <h3 className="tailored-card-title">Cover letter</h3>
               <button
                 type="button"
                 className="tailored-regenerate-link"
-                onClick={() => {}}
+                disabled={isRegenerating}
+                onClick={handleRegenerate}
               >
-                Regenerate
+                {isRegenerating ? 'Generating...' : 'Regenerate'}
               </button>
             </div>
 

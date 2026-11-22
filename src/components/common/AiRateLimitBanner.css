@@ -1,0 +1,118 @@
+.ai-limit-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 16px 0;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  position: relative;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ai-limit-banner.is-rate-limit {
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.ai-limit-banner.is-unavailable {
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+.ai-limit-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-limit-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-limit-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ai-limit-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: inherit;
+  opacity: 0.95;
+}
+
+.ai-limit-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.ai-limit-retry-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.ai-limit-retry-btn.is-ready {
+  background-color: var(--forest, #132A1C);
+  color: #FFFFFF;
+}
+
+.ai-limit-retry-btn.is-ready:hover {
+  background-color: #264e37;
+}
+
+.ai-limit-retry-btn.is-disabled {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.45);
+  cursor: not-allowed;
+}
+
+.ai-limit-upgrade-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #B45309;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ai-limit-upgrade-link:hover {
+  color: #78350F;
+}
+
+.ai-limit-dismiss {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+  border-radius: 4px;
+}
+
+.ai-limit-dismiss:hover {
+  opacity: 1;
+}
