@@ -13,6 +13,7 @@ import ApplicationTracker from './pages/ApplicationTracker'
 import ProfileSettings from './pages/ProfileSettings'
 import StandardApplyView from './pages/StandardApplyView'
 import TailoredAiView from './pages/TailoredAiView'
+import NotFound from './pages/NotFound'
 
 function ProtectedRoute({ children }) {
   const { status } = useAuth()
@@ -20,20 +21,23 @@ function ProtectedRoute({ children }) {
 
   if (status === 'loading') {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          fontFamily: 'var(--font-family)',
-          fontSize: '14px',
-          color: 'var(--muted)',
-          backgroundColor: 'var(--page)',
-        }}
-      >
-        Loading...
-      </div>
+      <>
+        <meta name="robots" content="noindex, nofollow" />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            fontFamily: 'var(--font-family)',
+            fontSize: '14px',
+            color: 'var(--muted)',
+            backgroundColor: 'var(--page)',
+          }}
+        >
+          Loading...
+        </div>
+      </>
     )
   }
 
@@ -41,7 +45,12 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
-  return children
+  return (
+    <>
+      <meta name="robots" content="noindex, nofollow" />
+      {children}
+    </>
+  )
 }
 
 export default function App() {
@@ -139,7 +148,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>
   )
