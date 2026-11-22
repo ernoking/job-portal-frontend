@@ -156,7 +156,7 @@
 /* Popover matching Figma Jobs Feed - Avatar menu */
 .app-nav-popover {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 20px);
   right: 0;
   background-color: var(--surface);
   border: 1px solid var(--line);
