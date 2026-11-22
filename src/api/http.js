@@ -1,4 +1,4 @@
-import { getStoredSession, clearStoredSession } from '../auth/storage';
+import { getStoredSession, clearStoredSession } from '../auth/storage.js';
 import { monitoredFetch } from '../monitoring/browserTraffic.js';
 
 export class ApiError extends Error {

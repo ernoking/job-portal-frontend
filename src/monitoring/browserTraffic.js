@@ -1,12 +1,12 @@
 import { createApiTrafficMonitor } from './apiTraffic.js';
 import { trafficConfig } from './trafficConfig.js';
 
-const env = import.meta.env;
+const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : (typeof process !== 'undefined' ? process.env : {});
 const monitor = createApiTrafficMonitor({
   enabled: env.VITE_FRONTEND_TELEMETRY_ENABLED === undefined
     ? trafficConfig.enabled : env.VITE_FRONTEND_TELEMETRY_ENABLED === 'true',
   endpoint: env.VITE_FRONTEND_TELEMETRY_URL ?? trafficConfig.endpoint,
-  baseUrl: window.location.href,
+  baseUrl: typeof window !== 'undefined' ? window.location.href : 'http://localhost:5173',
   mockApi: env.VITE_USE_MOCK_API === 'true',
   mockJobs: env.VITE_USE_MOCK_JOBS === 'true',
   captureRequests: env.VITE_FRONTEND_TELEMETRY_REQUESTS_ENABLED === undefined

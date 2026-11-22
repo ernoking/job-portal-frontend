@@ -1,4 +1,4 @@
-import { request } from './http';
+import { request } from './http.js';
 
 /**
  * Authenticates an existing user against the backend.
