@@ -59,17 +59,16 @@ export async function getCurrentUser(token) {
 
 /**
  * Permanently deletes the current user's account and data.
+ * Backend contract (AJSP-63): DELETE /api/account with JSON body { password }
  *
+ * @param {string} password The user's current password
  * @param {string} [token]
  * @returns {Promise<{ success: boolean }>}
  */
-export async function deleteAccount(token) {
-  try {
-    return await request('/api/me', {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-  } catch {
-    return { success: true };
-  }
+export async function deleteAccount(password, token) {
+  return await request('/api/account', {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: { password },
+  });
 }

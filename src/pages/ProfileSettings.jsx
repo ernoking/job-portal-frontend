@@ -229,14 +229,11 @@ export default function ProfileSettings() {
     setProfileData((prev) => ({ ...prev, isPhoneVerified: true }));
   }, []);
 
-  // Account deletion handler (AJSP-11, AJSP-60)
-  const handleConfirmDelete = async () => {
+  // Account deletion handler (AJSP-11, AJSP-60, AJSP-63)
+  const handleConfirmDelete = async (password) => {
     setIsDeleting(true);
     try {
-      await deleteAccount(token);
-      await signOut();
-      navigate('/login');
-    } catch {
+      await deleteAccount(password, token);
       await signOut();
       navigate('/login');
     } finally {

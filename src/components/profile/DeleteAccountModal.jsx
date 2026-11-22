@@ -7,18 +7,20 @@ export default function DeleteAccountModal({
   onConfirmDelete,
   isDeleting = false,
 }) {
+  const [password, setPassword] = useState('');
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState(null);
-  const inputRef = useRef(null);
+  const passwordInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => passwordInputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
   const handleClose = useCallback(() => {
     if (isDeleting) return;
+    setPassword('');
     setConfirmText('');
     setError(null);
     onClose();
@@ -39,15 +41,20 @@ export default function DeleteAccountModal({
 
   if (!isOpen) return null;
 
-  const isDeleteEnabled = confirmText.trim().toUpperCase() === 'DELETE';
+  const isDeleteEnabled = password.trim().length > 0 && confirmText.trim().toUpperCase() === 'DELETE';
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    if (e) e.preventDefault();
     if (!isDeleteEnabled || isDeleting) return;
     try {
       setError(null);
-      await onConfirmDelete();
+      await onConfirmDelete(password);
     } catch (err) {
-      setError(err?.message || 'Failed to delete account. Please try again.');
+      if (err?.status === 401 || err?.data?.code === 'WRONG_PASSWORD' || err?.message?.includes('password')) {
+        setError('Incorrect password. Please enter your valid password to proceed.');
+      } else {
+        setError(err?.message || 'Failed to delete account. Please try again.');
+      }
     }
   };
 
@@ -63,7 +70,7 @@ export default function DeleteAccountModal({
         }
       }}
     >
-      <div className="delete-modal-card">
+      <form className="delete-modal-card" onSubmit={handleDelete}>
         <div className="delete-modal-icon-badge" aria-hidden="true">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d92d20" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18" />
@@ -83,11 +90,28 @@ export default function DeleteAccountModal({
         </p>
 
         <div className="delete-modal-field">
+          <label htmlFor="delete-account-password-input" className="delete-modal-label">
+            Enter your <strong>password</strong>:
+          </label>
+          <input
+            ref={passwordInputRef}
+            id="delete-account-password-input"
+            type="password"
+            className="delete-modal-input"
+            placeholder="Your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isDeleting}
+            autoComplete="current-password"
+            data-testid="delete-account-password-input"
+          />
+        </div>
+
+        <div className="delete-modal-field">
           <label htmlFor="confirm-delete-input" className="delete-modal-label">
             Type <strong>DELETE</strong> to confirm:
           </label>
           <input
-            ref={inputRef}
             id="confirm-delete-input"
             type="text"
             className="delete-modal-input"
@@ -117,16 +141,15 @@ export default function DeleteAccountModal({
             Cancel
           </button>
           <button
-            type="button"
+            type="submit"
             className="delete-modal-confirm-btn"
-            onClick={handleDelete}
             disabled={!isDeleteEnabled || isDeleting}
             data-testid="delete-account-confirm-btn"
           >
             {isDeleting ? 'Deleting account...' : 'Permanently delete account'}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
