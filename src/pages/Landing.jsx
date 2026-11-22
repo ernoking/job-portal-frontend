@@ -67,7 +67,7 @@ export default function Landing() {
           </div>
 
           <nav className="header-nav" aria-label="Main Navigation">
-            <a href="#features" onClick={handleScrollToFeatures} className="nav-link">
+            <a href="#features-hero" onClick={handleScrollToFeatures} className="nav-link">
               Features
             </a>
             <a href="#why-matchwise" onClick={handleScrollToWhy} className="nav-link">
@@ -101,7 +101,7 @@ export default function Landing() {
           </div>
 
           <h1 className="hero-h1">
-            <span className="hero-h1-dark">Stop searching.</span>
+            <span className="hero-h1-dark">Stop searching.</span>{' '}
             <span className="hero-h1-green">Start matching.</span>
           </h1>
 
