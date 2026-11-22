@@ -12,7 +12,6 @@ export default function TailoredAiView() {
 
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('tailored'); // 'tailored' | 'original'
   const [tone, setTone] = useState('professional'); // 'professional' | 'friendly' | 'concise'
   const [aiError, setAiError] = useState(null);
@@ -50,19 +49,7 @@ export default function TailoredAiView() {
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     setAiError(null);
-    await new Promise((r) => setTimeout(r, 600));
-
-    // Handle potential rate limit or service unavailability
-    const chance = Math.random();
-    if (chance < 0.25) {
-      setAiError({
-        status: 429,
-        message: 'You have reached the AI generation limit for tailoring (5/5 requests). Upgrade to Premium or wait for the cooldown.',
-        data: { retryAfter: 45 },
-      });
-      setIsRegenerating(false);
-      return;
-    }
+    await new Promise((r) => setTimeout(r, 400));
 
     const candidate = currentJob?.title || 'the role';
     if (tone === 'friendly') {
@@ -81,22 +68,7 @@ export default function TailoredAiView() {
     setIsRegenerating(false);
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
 
-    try {
-      const stored = JSON.parse(sessionStorage.getItem('matchwise_applied_ids') || '[]');
-      if (job?.id && !stored.includes(job.id)) {
-        stored.push(job.id);
-        sessionStorage.setItem('matchwise_applied_ids', JSON.stringify(stored));
-      }
-    } catch {
-      // ignore
-    }
-
-    navigate('/matches?applied=' + encodeURIComponent(job?.id || ''));
-  };
 
   const currentJob = job || MOCK_JOBS[0];
   const fitScore = currentJob.fit || 94;
@@ -278,7 +250,10 @@ export default function TailoredAiView() {
           <Link to="/matches" className="tailored-bar-back-btn">
             ← Back to options
           </Link>
-          <div className="tailored-bar-right">
+          <div className="tailored-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '13px', color: '#55695f' }}>
+              Submission coming soon
+            </span>
             <button
               type="button"
               className="tailored-bar-save-btn"
@@ -289,10 +264,11 @@ export default function TailoredAiView() {
             <button
               type="button"
               className="tailored-bar-submit-btn"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={true}
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              title="Application submission coming soon"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit tailored application →'}
+              Submission coming soon
             </button>
           </div>
         </div>

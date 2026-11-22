@@ -53,31 +53,11 @@ export default function JobsFeed() {
   // Feed segment filter (Figma 209:645)
   const [activeSegment, setActiveSegment] = useState('all');
 
-  // Application tracking state
-  const appliedParam = searchParams.get('applied');
-  const [appliedJobIds, setAppliedJobIds] = useState(() => {
-    try {
-      const stored = JSON.parse(sessionStorage.getItem('matchwise_applied_ids') || '[]');
-      return new Set(stored);
-    } catch {
-      return new Set();
-    }
-  });
-
+  // Application tracking state (will be connected to real application history API)
+  const [appliedJobIds] = useState(() => new Set());
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [showInlinePathways, setShowInlinePathways] = useState(false);
-  const [inlineSubmittedJob, setInlineSubmittedJob] = useState(null);
-
-  useEffect(() => {
-    if (appliedParam) {
-      setAppliedJobIds((prev) => new Set([...prev, appliedParam]));
-      setInlineSubmittedJob({ id: appliedParam, title: 'Junior Product Designer', company: 'Northstar Labs' });
-      // clean param
-      const next = new URLSearchParams(searchParams);
-      next.delete('applied');
-      setSearchParams(next, { replace: true });
-    }
-  }, [appliedParam, searchParams, setSearchParams]);
+  const [inlineSubmittedJob] = useState(null);
 
   // Drawer detail states
   const jobParam = searchParams.get('job');

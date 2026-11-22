@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getMatchDetail } from '../api/jobs';
 import { MOCK_JOBS } from '../mocks/jobs';
@@ -8,12 +8,10 @@ import './StandardApplyView.css';
 
 export default function StandardApplyView() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [job, setJob] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   // Form states matching Figma 208:104
@@ -59,38 +57,7 @@ export default function StandardApplyView() {
     };
   }, [id]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!consentConfirmed) {
-      setError('Please agree that your profile and CV are shared with the employer.');
-      return;
-    }
 
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      // Simulate submission latency
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Mark applied in sessionStorage so JobsFeed picks it up
-      try {
-        const stored = JSON.parse(sessionStorage.getItem('matchwise_applied_ids') || '[]');
-        if (job?.id && !stored.includes(job.id)) {
-          stored.push(job.id);
-          sessionStorage.setItem('matchwise_applied_ids', JSON.stringify(stored));
-        }
-      } catch {
-        // ignore storage errors
-      }
-
-      // Navigate back to feed with applied flag
-      navigate('/matches?applied=' + encodeURIComponent(job?.id || ''));
-    } catch (err) {
-      setError(err?.message || 'Failed to submit application. Please try again.');
-      setIsSubmitting(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -355,13 +322,29 @@ export default function StandardApplyView() {
                 </li>
               </ul>
 
+              <div className="ready-coming-soon-notice" style={{
+                padding: '12px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#f4f6f4',
+                border: '1px solid #d0d7d2',
+                fontSize: '13px',
+                color: '#55695f',
+                lineHeight: '1.4',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                <strong style={{ display: 'block', color: '#15241d', marginBottom: '4px' }}>Coming soon</strong>
+                Online application submission will be available once connected to the backend.
+              </div>
+
               <button
                 type="button"
                 className="ready-submit-btn"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={true}
+                style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                title="Online application submission coming soon"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit application →'}
+                Submission coming soon
               </button>
 
               <div className="ready-switch-box">
