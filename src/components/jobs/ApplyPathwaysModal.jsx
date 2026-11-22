@@ -88,7 +88,7 @@ export default function ApplyPathwaysModal({
             </p>
           </div>
 
-          {/* Option 3: Set auto-apply rule (Pro) */}
+          {/* Option 3: Set auto-apply rule (Pro) - Disabled */}
           <div
             className={`pathways-option-card ${selectedPathway === 'auto' ? 'is-selected' : ''}`}
             onClick={() => setSelectedPathway('auto')}
@@ -106,10 +106,10 @@ export default function ApplyPathwaysModal({
             <div className="pathways-option-title-row">
               <span className={`pathways-radio ${selectedPathway === 'auto' ? 'is-checked' : ''}`} />
               <span className="pathways-option-name">Set auto-apply rule</span>
-              <span className="pathways-badge-pro">Pro</span>
+              <span className="pathways-badge-pro">Pro · Coming Soon</span>
             </div>
             <p className="pathways-option-desc">
-              Apply automatically to high-match roles, e.g. above 90% match score. Premium plan required to edit rules.
+              Apply automatically to high-match roles. Auto-apply rules will be available once connected to the backend.
             </p>
           </div>
         </div>
@@ -122,10 +122,12 @@ export default function ApplyPathwaysModal({
             type="button"
             className="pathways-btn-continue"
             onClick={handleContinue}
+            disabled={selectedPathway === 'auto'}
+            style={selectedPathway === 'auto' ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
           >
             {selectedPathway === 'standard' && 'Continue with standard apply →'}
             {selectedPathway === 'tailored' && 'Continue with tailored AI →'}
-            {selectedPathway === 'auto' && 'Set auto-apply rule →'}
+            {selectedPathway === 'auto' && 'Auto-apply coming soon'}
           </button>
         </div>
       </div>

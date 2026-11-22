@@ -6,7 +6,6 @@ import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
 import InlineApplyPathways from '../components/jobs/InlineApplyPathways';
-import InlineApplicationSubmitted from '../components/jobs/InlineApplicationSubmitted';
 import {
   getMatches,
   getMatchDetail,
@@ -57,7 +56,6 @@ export default function JobsFeed() {
   const [appliedJobIds] = useState(() => new Set());
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [showInlinePathways, setShowInlinePathways] = useState(false);
-  const [inlineSubmittedJob] = useState(null);
 
   // Drawer detail states
   const jobParam = searchParams.get('job');
@@ -204,7 +202,6 @@ export default function JobsFeed() {
   // Apply flow handlers: open inline pathways under featured match
   const handleStartApply = useCallback(() => {
     setShowInlinePathways(true);
-    setInlineSubmittedJob(null);
   }, []);
 
   const handleSelectPathway = useCallback((pathway, job) => {
@@ -214,10 +211,6 @@ export default function JobsFeed() {
       navigate(`/jobs/${targetId}/apply`);
     } else if (pathway === 'tailored') {
       navigate(`/jobs/${targetId}/tailor`);
-    } else if (pathway === 'auto') {
-      // rule saved
-      setAppliedJobIds((prev) => new Set([...prev, targetId]));
-      setInlineSubmittedJob(job);
     }
   }, [navigate]);
 
@@ -462,14 +455,6 @@ export default function JobsFeed() {
                     onViewDetails={handleOpenDrawer}
                     onApply={handleStartApply}
                     isApplied={appliedJobIds.has(featuredJob.id)}
-                  />
-                )}
-
-                {/* Inline Application Submitted Confirmation Banner (Figma Screen 0) */}
-                {inlineSubmittedJob && (
-                  <InlineApplicationSubmitted
-                    job={inlineSubmittedJob}
-                    onBackToFeed={() => setInlineSubmittedJob(null)}
                   />
                 )}
 

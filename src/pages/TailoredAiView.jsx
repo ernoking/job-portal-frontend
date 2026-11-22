@@ -15,10 +15,9 @@ export default function TailoredAiView() {
   const [activeTab, setActiveTab] = useState('tailored'); // 'tailored' | 'original'
   const [tone, setTone] = useState('professional'); // 'professional' | 'friendly' | 'concise'
   const [aiError, setAiError] = useState(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const [coverLetter, setCoverLetter] = useState(
-    `Dear Northstar Labs hiring team,\n\nI'm excited to apply for the Junior Product Designer role. Over five years at Acme Studio I led UX for the onboarding flow and maintained a design system used by four product squads, which maps directly to your team's core product workflow.\n\nMy research-led process, including sessions with 30+ users, and my Figma prototyping experience would help me contribute from day one, and I'd love to grow into motion design and product analytics with your team.\n\nThank you for your time and consideration.\n\nBest regards, Alex Morgan`
+    `Dear Northstar Labs hiring team,\n\nI am writing to express my interest in this position. (AI letter generation will be available once connected to the backend).\n\nBest regards,\nAlex Morgan`
   );
 
   useEffect(() => {
@@ -46,27 +45,7 @@ export default function TailoredAiView() {
     };
   }, [id]);
 
-  const handleRegenerate = async () => {
-    setIsRegenerating(true);
-    setAiError(null);
-    await new Promise((r) => setTimeout(r, 400));
 
-    const candidate = currentJob?.title || 'the role';
-    if (tone === 'friendly') {
-      setCoverLetter(
-        `Hi Northstar Labs team!\n\nI'm thrilled to apply for ${candidate}. I love your approach to user experience and would be excited to bring my design systems and prototyping background to your squad.\n\nLooking forward to speaking with you!\n\nCheers, Alex Morgan`
-      );
-    } else if (tone === 'concise') {
-      setCoverLetter(
-        `Dear Hiring Manager,\n\nI am writing to apply for ${candidate}. With strong expertise in Figma design systems, prototyping, and user testing, I can deliver immediate impact to Northstar Labs' product goals.\n\nSincerely, Alex Morgan`
-      );
-    } else {
-      setCoverLetter(
-        `Dear Northstar Labs hiring team,\n\nI'm excited to apply for ${candidate}. Over five years at Acme Studio I led UX for the onboarding flow and maintained a design system used by four product squads, which maps directly to your team's core product workflow.\n\nBest regards, Alex Morgan`
-      );
-    }
-    setIsRegenerating(false);
-  };
 
 
 
@@ -98,9 +77,22 @@ export default function TailoredAiView() {
 
         {/* Title */}
         <header className="tailored-title-block">
-          <h1 className="tailored-page-title">Tailor your application</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 className="tailored-page-title">Tailor your application</h1>
+            <span style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#344054',
+              backgroundColor: '#f2f4f7',
+              border: '1px solid #eaecf0',
+              padding: '3px 8px',
+              borderRadius: '12px'
+            }}>
+              AI generation coming soon
+            </span>
+          </div>
           <p className="tailored-page-sub">
-            AI adjusted your resume highlights and drafted a cover letter for this role. Review and edit everything before you submit.
+            AI tailoring will adjust your resume highlights and draft a role-specific cover letter once connected to the backend.
           </p>
         </header>
 
@@ -127,7 +119,10 @@ export default function TailoredAiView() {
           {/* Left Column: Tailored Resume */}
           <div className="tailored-col-card">
             <div className="tailored-card-header">
-              <h3 className="tailored-card-title">Tailored resume</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 className="tailored-card-title">Resume preview</h3>
+                <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Sample</span>
+              </div>
               <div className="tailored-pill-tabs">
                 <button
                   type="button"
@@ -196,21 +191,26 @@ export default function TailoredAiView() {
             {aiError && (
               <AiRateLimitBanner
                 error={aiError}
-                onRetry={handleRegenerate}
+                onRetry={() => {}}
                 onDismiss={() => setAiError(null)}
               />
             )}
 
             <div className="tailored-card-header">
-              <h3 className="tailored-card-title">Cover letter</h3>
-              <button
-                type="button"
-                className="tailored-regenerate-link"
-                disabled={isRegenerating}
-                onClick={handleRegenerate}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 className="tailored-card-title">Cover letter</h3>
+                <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Sample</span>
+              </div>
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: '#98a2b3',
+                  cursor: 'not-allowed',
+                }}
+                title="AI regeneration coming soon"
               >
-                {isRegenerating ? 'Generating...' : 'Regenerate'}
-              </button>
+                Regenerate (Coming soon)
+              </span>
             </div>
 
             {/* Tone selector row */}
