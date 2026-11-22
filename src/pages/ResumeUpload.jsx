@@ -8,6 +8,7 @@ import { USE_MOCK_API } from '../api/config';
 import { generateCvProfile } from '../api/profile';
 import { getDraft, setDraft } from '../onboarding/draftStore';
 import { getCvDownloadUrl, listCvFiles, uploadCv } from '../api/cv';
+import { parseCvFileInBrowser } from '../utils/cvParser';
 import './ResumeUpload.css';
 
 function formatBytes(bytes) {
@@ -70,6 +71,14 @@ export default function ResumeUpload() {
     setUploadError('');
 
     try {
+      if (selectedFile) {
+        // Parse the actual CV file in browser to extract real candidate name, email, phone, and skills
+        const parsedProfile = await parseCvFileInBrowser(selectedFile);
+        if (parsedProfile) {
+          setDraft({ extractedCvProfile: parsedProfile, uploadedFileName: selectedFile.name });
+        }
+      }
+
       let cvId = uploadedCvId;
       if (!cvId) {
         const result = await uploadCv(selectedFile, { signal: controller.signal });

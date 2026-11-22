@@ -10,20 +10,29 @@ import { getStoredSession } from '../auth/storage';
 export async function getProfile() {
   if (USE_MOCK_API) {
     await new Promise((resolve) => setTimeout(resolve, 300));
-    const base = structuredClone(mockProfile);
-    const session = getStoredSession();
-    if (session?.user) {
-      const u = session.user;
-      const computedName =
-        u.firstName && u.lastName
-          ? `${u.firstName} ${u.lastName}`
-          : u.firstName || u.name || base.personal.name;
-      base.personal.name = computedName;
-      if (u.email) {
-        base.personal.email = u.email;
+    const draft = getDraft();
+
+    // Prefer directly extracted candidate profile from the uploaded CV file
+    let base = draft?.extractedCvProfile
+      ? structuredClone(draft.extractedCvProfile)
+      : structuredClone(mockProfile);
+
+    // If not extracted from CV content, fall back to session user
+    if (!draft?.extractedCvProfile) {
+      const session = getStoredSession();
+      if (session?.user) {
+        const u = session.user;
+        const computedName =
+          u.firstName && u.lastName
+            ? `${u.firstName} ${u.lastName}`
+            : u.firstName || u.name || base.personal.name;
+        base.personal.name = computedName;
+        if (u.email) {
+          base.personal.email = u.email;
+        }
       }
     }
-    const draft = getDraft();
+
     return applyPreferencesToProfile(base, draft?.preferences);
   }
 

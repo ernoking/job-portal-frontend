@@ -10,6 +10,8 @@ function loadInitialDraft() {
           return {
             preferences: parsed.preferences || null,
             cvId: typeof parsed.cvId === 'string' ? parsed.cvId : null,
+            uploadedFileName: typeof parsed.uploadedFileName === 'string' ? parsed.uploadedFileName : null,
+            extractedCvProfile: parsed.extractedCvProfile || null,
           };
         }
       }
@@ -17,7 +19,7 @@ function loadInitialDraft() {
   } catch {
     // sessionStorage unavailable or restricted
   }
-  return { preferences: null, cvId: null };
+  return { preferences: null, cvId: null, uploadedFileName: null, extractedCvProfile: null };
 }
 
 let currentDraft = loadInitialDraft();
