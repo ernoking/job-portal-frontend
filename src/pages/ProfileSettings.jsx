@@ -235,10 +235,11 @@ export default function ProfileSettings() {
     try {
       await deleteAccount(password, token);
       await signOut();
-      navigate('/login');
-    } finally {
-      setIsDeleting(false);
       setIsDeleteModalOpen(false);
+      navigate('/login');
+    } catch (err) {
+      setIsDeleting(false);
+      throw err;
     }
   };
 
