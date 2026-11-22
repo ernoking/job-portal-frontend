@@ -136,87 +136,89 @@ export default function Login() {
   )
 
   return (
-    <title>Log in — Matchwise</title>
+    <>
+      <title>Log in — Matchwise</title>
       <meta name="description" content="Log in to your Matchwise account to view your AI job matches and track your applications." />
       <link rel="canonical" href="https://matchwise.tech/login" />
 
-    <AuthLayout
-      pageType="login"
-      eyebrowText="YOUR WORKSPACE IS READY"
-      headingText={<>Pick up right where you<br />left off.</>}
-      paragraphText={<>Your latest matches, saved roles, and application progress are waiting in<br />one focused place.</>}
-      leftFooterLabel="PRIVATE BY DESIGN"
-      leftFooterRight="Your CV and account data are protected."
-      leftCardContent={opportunityHubCard}
-      pillText="WELCOME BACK"
-      h1Content="Log in to your account"
-      subContent="Your next opportunity might already be waiting."
-    >
-      <form onSubmit={handleSubmit} noValidate className="login-form">
-        <div className="login-field-row">
-          <Field
-            label="Email address"
-            id="email"
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
-            autoComplete="email"
-            required
-          />
-        </div>
-
-        <div className="login-field-row">
-          <Field
-            label="Password"
-            id="password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            autoComplete="current-password"
-            required
-          />
-        </div>
-
-        <div className="login-actions-row">
-          <Checkbox
-            id="rememberMe"
-            name="rememberMe"
-            checked={formData.rememberMe}
-            onChange={handleChange}
-            size={13}
-          >
-            Remember me
-          </Checkbox>
-          <a href="#forgot" className="forgot-password-link">
-            Forgot password?
-          </a>
-        </div>
-
-        <div className="login-submit-wrap">
-          <Button type="submit" variant="primary" fullWidth arrow disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Log in'}
-          </Button>
-        </div>
-
-        {submitError && (
-          <div className="auth-form-error" role="alert" data-testid="login-error">
-            {submitError}
+      <AuthLayout
+        pageType="login"
+        eyebrowText="YOUR WORKSPACE IS READY"
+        headingText={<>Pick up right where you<br />left off.</>}
+        paragraphText={<>Your latest matches, saved roles, and application progress are waiting in<br />one focused place.</>}
+        leftFooterLabel="PRIVATE BY DESIGN"
+        leftFooterRight="Your CV and account data are protected."
+        leftCardContent={opportunityHubCard}
+        pillText="WELCOME BACK"
+        h1Content="Log in to your account"
+        subContent="Your next opportunity might already be waiting."
+      >
+        <form onSubmit={handleSubmit} noValidate className="login-form">
+          <div className="login-field-row">
+            <Field
+              label="Email address"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              autoComplete="email"
+              required
+            />
           </div>
-        )}
 
-        <div className="login-bottom-switch">
-          <span className="switch-text">New to Matchwise?</span>
-          <Link to="/register" className="switch-link">
-            Create an account
-          </Link>
-        </div>
-      </form>
-    </AuthLayout>
+          <div className="login-field-row">
+            <Field
+              label="Password"
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          <div className="login-actions-row">
+            <Checkbox
+              id="rememberMe"
+              name="rememberMe"
+              checked={formData.rememberMe}
+              onChange={handleChange}
+              size={13}
+            >
+              Remember me
+            </Checkbox>
+            <a href="#forgot" className="forgot-password-link">
+              Forgot password?
+            </a>
+          </div>
+
+          <div className="login-submit-wrap">
+            <Button type="submit" variant="primary" fullWidth arrow disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Log in'}
+            </Button>
+          </div>
+
+          {submitError && (
+            <div className="auth-form-error" role="alert" data-testid="login-error">
+              {submitError}
+            </div>
+          )}
+
+          <div className="login-bottom-switch">
+            <span className="switch-text">New to Matchwise?</span>
+            <Link to="/register" className="switch-link">
+              Create an account
+            </Link>
+          </div>
+        </form>
+      </AuthLayout>
+    </>
   )
 }
