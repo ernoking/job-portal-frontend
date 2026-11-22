@@ -135,140 +135,146 @@ export default function Register() {
   )
 
   return (
-    <AuthLayout
-      pageType="register"
-      eyebrowText="A SMARTER START"
-      headingText={<>Turn one CV into your<br />best next move.</>}
-      paragraphText={<>Create your free account and let AI do the heavy lifting – from<br />understanding your experience to finding roles that truly fit.</>}
-      leftFooterLabel="FREE TO GET STARTED"
-      leftFooterRight="From sign-up to matches in under 5 minutes."
-      leftCardContent={stepsList}
-      pillText="START MATCHING TODAY"
-      h1Content={<>Create your free<br />account</>}
-      subContent={
-        <>
-          Upload your CV and see your strongest job<br className="mobile-only-br" /> matches in<br />minutes.
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} noValidate className="register-form">
-        {/* Name row */}
-        <div className="register-name-row">
-          <div className="name-col">
+    <>
+      <title>Create Free Account — Matchwise</title>
+      <meta name="description" content="Create a free Matchwise account, upload your CV, and discover your best job matches in 5 minutes." />
+      <link rel="canonical" href="https://matchwise.tech/register" />
+
+      <AuthLayout
+        pageType="register"
+        eyebrowText="A SMARTER START"
+        headingText={<>Turn one CV into your<br />best next move.</>}
+        paragraphText={<>Create your free account and let AI do the heavy lifting – from<br />understanding your experience to finding roles that truly fit.</>}
+        leftFooterLabel="FREE TO GET STARTED"
+        leftFooterRight="From sign-up to matches in under 5 minutes."
+        leftCardContent={stepsList}
+        pillText="START MATCHING TODAY"
+        h1Content={<>Create your free<br />account</>}
+        subContent={
+          <>
+            Upload your CV and see your strongest job<br className="mobile-only-br" /> matches in<br />minutes.
+          </>
+        }
+      >
+        <form onSubmit={handleSubmit} noValidate className="register-form">
+          {/* Name row */}
+          <div className="register-name-row">
+            <div className="name-col">
+              <Field
+                label="First name"
+                id="firstName"
+                name="firstName"
+                placeholder="Alex"
+                value={formData.firstName}
+                onChange={handleChange}
+                error={errors.firstName}
+                autoComplete="given-name"
+                required
+              />
+            </div>
+            <div className="name-col">
+              <Field
+                label="Last name"
+                id="lastName"
+                name="lastName"
+                placeholder="Morgan"
+                value={formData.lastName}
+                onChange={handleChange}
+                error={errors.lastName}
+                autoComplete="family-name"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Middle name */}
+          <div className="register-field-row">
             <Field
-              label="First name"
-              id="firstName"
-              name="firstName"
-              placeholder="Alex"
-              value={formData.firstName}
+              label="Middle name (optional)"
+              id="middleName"
+              name="middleName"
+              placeholder="Jordan"
+              value={formData.middleName}
               onChange={handleChange}
-              error={errors.firstName}
-              autoComplete="given-name"
+              autoComplete="additional-name"
+            />
+          </div>
+
+          {/* Email */}
+          <div className="register-field-row">
+            <Field
+              label="Email address"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              autoComplete="email"
               required
             />
           </div>
-          <div className="name-col">
+
+          {/* Password */}
+          <div className="register-field-row pass-field-row">
             <Field
-              label="Last name"
-              id="lastName"
-              name="lastName"
-              placeholder="Morgan"
-              value={formData.lastName}
+              label="Password"
+              id="password"
+              name="password"
+              type="password"
+              placeholder="At least 8 characters"
+              value={formData.password}
               onChange={handleChange}
-              error={errors.lastName}
-              autoComplete="family-name"
+              error={errors.password}
+              hint="Use 8+ characters with a number and special character"
+              autoComplete="new-password"
               required
             />
           </div>
-        </div>
 
-        {/* Middle name */}
-        <div className="register-field-row">
-          <Field
-            label="Middle name (optional)"
-            id="middleName"
-            name="middleName"
-            placeholder="Jordan"
-            value={formData.middleName}
-            onChange={handleChange}
-            autoComplete="additional-name"
-          />
-        </div>
-
-        {/* Email */}
-        <div className="register-field-row">
-          <Field
-            label="Email address"
-            id="email"
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
-            autoComplete="email"
-            required
-          />
-        </div>
-
-        {/* Password */}
-        <div className="register-field-row pass-field-row">
-          <Field
-            label="Password"
-            id="password"
-            name="password"
-            type="password"
-            placeholder="At least 8 characters"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            hint="Use 8+ characters with a number and special character"
-            autoComplete="new-password"
-            required
-          />
-        </div>
-
-        {/* Checkbox Terms row with exact 6px gap items and detached period */}
-        <div className="register-terms-row">
-          <Checkbox
-            id="agreeTerms"
-            name="agreeTerms"
-            checked={formData.agreeTerms}
-            onChange={handleChange}
-            size={12}
-          >
-            <span className="terms-flex-wrap">
-              <span>I agree to the</span>
-              <a href="#terms" className="terms-link">Terms</a>
-              <span>and</span>
-              <a href="#privacy" className="terms-link">Privacy Policy</a>
-              <span className="detached-period">.</span>
-            </span>
-          </Checkbox>
-          {errors.agreeTerms && <span className="terms-error-msg" data-testid="agreeTerms-error">{errors.agreeTerms}</span>}
-        </div>
-
-        {/* Submit */}
-        <div className="register-submit-wrap">
-          <Button type="submit" variant="primary" fullWidth arrow disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Create account'}
-          </Button>
-        </div>
-
-        {submitError && (
-          <div className="auth-form-error" role="alert" data-testid="register-error">
-            {submitError}
+          {/* Checkbox Terms row with exact 6px gap items and detached period */}
+          <div className="register-terms-row">
+            <Checkbox
+              id="agreeTerms"
+              name="agreeTerms"
+              checked={formData.agreeTerms}
+              onChange={handleChange}
+              size={12}
+            >
+              <span className="terms-flex-wrap">
+                <span>I agree to the</span>
+                <a href="#terms" className="terms-link">Terms</a>
+                <span>and</span>
+                <a href="#privacy" className="terms-link">Privacy Policy</a>
+                <span className="detached-period">.</span>
+              </span>
+            </Checkbox>
+            {errors.agreeTerms && <span className="terms-error-msg" data-testid="agreeTerms-error">{errors.agreeTerms}</span>}
           </div>
-        )}
 
-        {/* Bottom switch */}
-        <div className="register-bottom-switch">
-          <span className="switch-text">Already have an account?</span>
-          <Link to="/login" className="switch-link">
-            Log in
-          </Link>
-        </div>
-      </form>
-    </AuthLayout>
+          {/* Submit */}
+          <div className="register-submit-wrap">
+            <Button type="submit" variant="primary" fullWidth arrow disabled={isLoading}>
+              {isLoading ? 'Creating account...' : 'Create account'}
+            </Button>
+          </div>
+
+          {submitError && (
+            <div className="auth-form-error" role="alert" data-testid="register-error">
+              {submitError}
+            </div>
+          )}
+
+          {/* Bottom switch */}
+          <div className="register-bottom-switch">
+            <span className="switch-text">Already have an account?</span>
+            <Link to="/login" className="switch-link">
+              Log in
+            </Link>
+          </div>
+        </form>
+      </AuthLayout>
+    </>
   )
 }
