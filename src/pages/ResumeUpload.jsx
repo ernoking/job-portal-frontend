@@ -55,7 +55,7 @@ export default function ResumeUpload() {
     setSelectedFile(file);
     if (file) {
       setUploadedCvId(null);
-      setDraft({ cvId: null });
+      setDraft({ cvId: null, uploadedFileName: file.name });
     }
     setFileError(error);
     setUploadError('');
@@ -77,7 +77,7 @@ export default function ResumeUpload() {
         cvId = result.cv?.id;
         if (cvId) {
           setUploadedCvId(cvId);
-          setDraft({ cvId });
+          setDraft({ cvId, uploadedFileName: selectedFile?.name || result.cv?.fileName });
           setSavedFiles((files) => [result.cv, ...files.filter((file) => file.id !== cvId)]);
         }
       }
