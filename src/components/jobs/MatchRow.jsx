@@ -1,9 +1,27 @@
+import React from 'react';
 import './MatchRow.css';
 
-export default function MatchRow({ job, onSelect, onApply, isApplied = false }) {
+export default function MatchRow({
+  job,
+  onSelect,
+  onApply,
+  isApplied = false,
+  isExpanded = false,
+  onToggleExpand,
+}) {
   if (!job) return null;
 
-  const { id, title, company, location, workType, employmentType = '', fit } = job;
+  const {
+    id,
+    title,
+    company,
+    location,
+    workType,
+    employmentType = '',
+    fit,
+    whyMatch = ['Figma & prototyping', 'User research', 'Design systems'],
+    skillsToBuild = ['Accessibility (WCAG)', 'Product analytics'],
+  } = job;
 
   const metaString = [location, workType, employmentType]
     .filter(Boolean)
@@ -14,7 +32,11 @@ export default function MatchRow({ job, onSelect, onApply, isApplied = false }) 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onSelect(id);
+      if (onToggleExpand) {
+        onToggleExpand();
+      } else {
+        onSelect(id);
+      }
     }
   };
 
@@ -25,38 +47,92 @@ export default function MatchRow({ job, onSelect, onApply, isApplied = false }) 
 
   return (
     <div
-      className="match-row-card"
-      role="button"
+      className={`match-row-card ${isExpanded ? 'is-expanded' : ''}`}
       tabIndex={0}
-      onClick={() => onSelect(id)}
+      onClick={() => (onToggleExpand ? onToggleExpand() : onSelect(id))}
       onKeyDown={handleKeyDown}
       aria-label={`View match details for ${title} at ${company}${hasScore ? `, ${fit}% fit` : ''}`}
       data-testid={`match-row-${id}`}
     >
-      <div className="match-row-left">
-        <span className="match-row-company">{company}</span>
-        <h3 className="match-row-title">{title}</h3>
-        {metaString && <p className="match-row-meta">{metaString}</p>}
+      <div className="match-row-top-line">
+        <div className="match-row-left">
+          <span className="match-row-company">{company}</span>
+          <h3 className="match-row-title">{title}</h3>
+          {metaString && <p className="match-row-meta">{metaString}</p>}
+        </div>
+
+        <div className="match-row-right">
+          <span className="match-row-new-badge">New</span>
+
+          {isApplied ? (
+            <span className="match-row-applied-badge">✓ Applied</span>
+          ) : (
+            <button
+              type="button"
+              className="match-row-apply-btn"
+              onClick={handleApplyClick}
+              aria-label={`Apply to ${title} at ${company}`}
+            >
+              Apply now
+            </button>
+          )}
+
+          {hasScore && (
+            <span className="match-row-fit">{fit}% fit</span>
+          )}
+        </div>
       </div>
 
-      <div className="match-row-right">
-        {isApplied ? (
-          <span className="match-row-applied-badge">✓ Applied</span>
-        ) : (
-          <button
-            type="button"
-            className="match-row-apply-btn"
-            onClick={handleApplyClick}
-            aria-label={`Apply to ${title} at ${company}`}
-          >
-            Apply now
-          </button>
-        )}
+      {/* Expanded Accordion Body (Figma Screen 2) */}
+      {isExpanded && (
+        <div className="match-row-expanded-body" onClick={(e) => e.stopPropagation()}>
+          <div className="match-row-panels-grid">
+            <div className="match-row-panel">
+              <span className="row-panel-heading">Why you match</span>
+              <ul className="row-panel-list">
+                {whyMatch.map((w, idx) => (
+                  <li key={idx} className="row-panel-item">
+                    <span className="row-check">✓</span>
+                    <span>{w}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-        {hasScore && (
-          <span className="match-row-fit">{fit}% fit</span>
-        )}
-      </div>
+            <div className="match-row-panel">
+              <span className="row-panel-heading">Skills to build</span>
+              <ul className="row-panel-list">
+                {skillsToBuild.map((s, idx) => (
+                  <li key={idx} className="row-panel-item">
+                    <span className="row-plus">+</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="match-row-bottom-actions">
+            <button
+              type="button"
+              className="match-row-view-details-link"
+              onClick={() => onSelect(id)}
+            >
+              View all details →
+            </button>
+
+            {!isApplied && (
+              <button
+                type="button"
+                className="match-row-apply-btn-large"
+                onClick={handleApplyClick}
+              >
+                Apply now
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

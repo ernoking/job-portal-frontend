@@ -1,15 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import FilterSidebar from '../components/jobs/FilterSidebar';
 import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
-import ApplyPathwaysModal from '../components/jobs/ApplyPathwaysModal';
-import StandardApplyModal from '../components/jobs/StandardApplyModal';
-import TailoredAiModal from '../components/jobs/TailoredAiModal';
-import AutoApplyModal from '../components/jobs/AutoApplyModal';
-import ApplicationSubmittedModal from '../components/jobs/ApplicationSubmittedModal';
+import InlineApplyPathways from '../components/jobs/InlineApplyPathways';
+import InlineApplicationSubmitted from '../components/jobs/InlineApplicationSubmitted';
 import {
   getMatches,
   getMatchDetail,
@@ -30,6 +27,7 @@ const INITIAL_FILTERS = {
 
 export default function JobsFeed() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Filters state starts with the displayed defaults immediately (Finding [P2])
   const [filters, setFilters] = useState(INITIAL_FILTERS);
@@ -56,14 +54,30 @@ export default function JobsFeed() {
   const [activeSegment, setActiveSegment] = useState('all');
 
   // Application tracking state
-  const [appliedJobIds, setAppliedJobIds] = useState(() => new Set());
-  const [applyTargetJob, setApplyTargetJob] = useState(null);
-  const [isPathwaysOpen, setIsPathwaysOpen] = useState(false);
-  const [isStandardApplyOpen, setIsStandardApplyOpen] = useState(false);
-  const [isTailoredAiOpen, setIsTailoredAiOpen] = useState(false);
-  const [isAutoApplyOpen, setIsAutoApplyOpen] = useState(false);
-  const [lastSubmission, setLastSubmission] = useState(null);
-  const [isSubmittedOpen, setIsSubmittedOpen] = useState(false);
+  const appliedParam = searchParams.get('applied');
+  const [appliedJobIds, setAppliedJobIds] = useState(() => {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('matchwise_applied_ids') || '[]');
+      return new Set(stored);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const [expandedRowId, setExpandedRowId] = useState(null);
+  const [showInlinePathways, setShowInlinePathways] = useState(false);
+  const [inlineSubmittedJob, setInlineSubmittedJob] = useState(null);
+
+  useEffect(() => {
+    if (appliedParam) {
+      setAppliedJobIds((prev) => new Set([...prev, appliedParam]));
+      setInlineSubmittedJob({ id: appliedParam, title: 'Junior Product Designer', company: 'Northstar Labs' });
+      // clean param
+      const next = new URLSearchParams(searchParams);
+      next.delete('applied');
+      setSearchParams(next, { replace: true });
+    }
+  }, [appliedParam, searchParams, setSearchParams]);
 
   // Drawer detail states
   const jobParam = searchParams.get('job');
@@ -207,37 +221,25 @@ export default function JobsFeed() {
   const hasMore = remainingJobs.length > visibleMoreCount;
   const remainingCount = remainingJobs.length - visibleMoreCount;
 
-  // Apply flow handlers
-  const handleStartApply = useCallback((job) => {
-    setApplyTargetJob(job);
-    setIsPathwaysOpen(true);
+  // Apply flow handlers: open inline pathways under featured match
+  const handleStartApply = useCallback(() => {
+    setShowInlinePathways(true);
+    setInlineSubmittedJob(null);
   }, []);
 
-  const handleSelectPathway = useCallback((pathway) => {
-    setIsPathwaysOpen(false);
+  const handleSelectPathway = useCallback((pathway, job) => {
+    setShowInlinePathways(false);
+    const targetId = job?.id || 'job-1';
     if (pathway === 'standard') {
-      setIsStandardApplyOpen(true);
+      navigate(`/jobs/${targetId}/apply`);
     } else if (pathway === 'tailored') {
-      setIsTailoredAiOpen(true);
+      navigate(`/jobs/${targetId}/tailor`);
     } else if (pathway === 'auto') {
-      setIsAutoApplyOpen(true);
+      // rule saved
+      setAppliedJobIds((prev) => new Set([...prev, targetId]));
+      setInlineSubmittedJob(job);
     }
-  }, []);
-
-  const handleSubmitSuccess = useCallback((submissionData) => {
-    setIsStandardApplyOpen(false);
-    setIsTailoredAiOpen(false);
-    setAppliedJobIds((prev) => new Set([...prev, submissionData.jobId]));
-    setLastSubmission(submissionData);
-    setIsSubmittedOpen(true);
-  }, []);
-
-  const handleBackToPathways = useCallback(() => {
-    setIsStandardApplyOpen(false);
-    setIsTailoredAiOpen(false);
-    setIsAutoApplyOpen(false);
-    setIsPathwaysOpen(true);
-  }, []);
+  }, [navigate]);
 
   // Fetch drawer job detail when ?job=<id> is in URL
   const fetchDrawerDetail = useCallback(
@@ -483,10 +485,27 @@ export default function JobsFeed() {
                   />
                 )}
 
+                {/* Inline Application Submitted Confirmation Banner (Figma Screen 0) */}
+                {inlineSubmittedJob && (
+                  <InlineApplicationSubmitted
+                    job={inlineSubmittedJob}
+                    onBackToFeed={() => setInlineSubmittedJob(null)}
+                  />
+                )}
+
+                {/* Inline Application Pathways Panel (Figma Screen 4, 5, 7) */}
+                {showInlinePathways && (
+                  <InlineApplyPathways
+                    job={featuredJob}
+                    onClose={() => setShowInlinePathways(false)}
+                    onSelectPathway={handleSelectPathway}
+                  />
+                )}
+
                 {/* More strong matches */}
                 {moreJobs.length > 0 && (
                   <section className="jobs-more-section" aria-label="More strong matches">
-                    <h2 className="jobs-more-title">More strong matches</h2>
+                    <h2 className="jobs-more-title">Stronger matches</h2>
                     <div className="jobs-more-list">
                       {moreJobs.map((job) => (
                         <MatchRow
@@ -495,6 +514,10 @@ export default function JobsFeed() {
                           onSelect={handleOpenDrawer}
                           onApply={handleStartApply}
                           isApplied={appliedJobIds.has(job.id)}
+                          isExpanded={expandedRowId === job.id}
+                          onToggleExpand={() =>
+                            setExpandedRowId(expandedRowId === job.id ? null : job.id)
+                          }
                         />
                       ))}
                     </div>
@@ -528,44 +551,10 @@ export default function JobsFeed() {
         error={drawerError}
         onClose={handleCloseDrawer}
         onRetry={() => fetchDrawerDetail(jobParam)}
-      />
-
-      {/* Application Pathways & Submission Modals */}
-      <ApplyPathwaysModal
-        job={applyTargetJob}
-        isOpen={isPathwaysOpen}
-        onClose={() => setIsPathwaysOpen(false)}
-        onSelectPathway={handleSelectPathway}
-      />
-
-      <StandardApplyModal
-        job={applyTargetJob}
-        isOpen={isStandardApplyOpen}
-        onClose={() => setIsStandardApplyOpen(false)}
-        onBackToPathways={handleBackToPathways}
-        onSubmitSuccess={handleSubmitSuccess}
-      />
-
-      <TailoredAiModal
-        job={applyTargetJob}
-        isOpen={isTailoredAiOpen}
-        onClose={() => setIsTailoredAiOpen(false)}
-        onBackToPathways={handleBackToPathways}
-        onSubmitSuccess={handleSubmitSuccess}
-      />
-
-      <AutoApplyModal
-        job={applyTargetJob}
-        isOpen={isAutoApplyOpen}
-        onClose={() => setIsAutoApplyOpen(false)}
-        onBackToPathways={handleBackToPathways}
-        onSaveRules={() => {}}
-      />
-
-      <ApplicationSubmittedModal
-        submission={lastSubmission}
-        isOpen={isSubmittedOpen}
-        onClose={() => setIsSubmittedOpen(false)}
+        onApply={(job) => {
+          handleCloseDrawer();
+          navigate(`/jobs/${job?.id || 'job-1'}/apply`);
+        }}
       />
     </div>
   );

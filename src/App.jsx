@@ -11,6 +11,8 @@ import ReviewCareerGoals from './pages/ReviewCareerGoals'
 import JobsFeed from './pages/JobsFeed'
 import ApplicationTracker from './pages/ApplicationTracker'
 import ProfileSettings from './pages/ProfileSettings'
+import StandardApplyView from './pages/StandardApplyView'
+import TailoredAiView from './pages/TailoredAiView'
 
 function ProtectedRoute({ children }) {
   const { status } = useAuth()
@@ -94,6 +96,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <JobsFeed />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:id/apply"
+          element={
+            <ProtectedRoute>
+              <StandardApplyView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:id/tailor"
+          element={
+            <ProtectedRoute>
+              <TailoredAiView />
             </ProtectedRoute>
           }
         />
