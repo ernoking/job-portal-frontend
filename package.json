@@ -11,6 +11,7 @@
     "test:telemetry": "node --test tests/apiTraffic.test.js"
   },
   "dependencies": {
+    "pdfjs-dist": "^3.11.174",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.5"
