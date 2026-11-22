@@ -140,22 +140,46 @@ export default function AppNav({ activeTab }) {
               aria-label="User details"
               data-testid="app-nav-popover"
             >
-              <div className="app-nav-popover-info">
-                <p className="app-nav-popover-name">{fullName}</p>
-                {user?.email && (
-                  <p className="app-nav-popover-email">{user.email}</p>
-                )}
+              <div className="app-nav-popover-header">
+                <div className="app-nav-popover-avatar" aria-hidden="true">
+                  {initials}
+                </div>
+                <div className="app-nav-popover-info">
+                  <p className="app-nav-popover-name">{fullName}</p>
+                  <p className="app-nav-popover-email">{user?.email || 'alex.morgan@email.com'}</p>
+                </div>
               </div>
+
+              <div className="app-nav-popover-menu">
+                <Link
+                  to="/settings"
+                  className="app-nav-popover-item is-highlighted"
+                  onClick={() => setPopoverOpen(false)}
+                  data-testid="nav-profile-settings-link"
+                >
+                  <span>Profile settings</span>
+                  <span className="app-nav-popover-arrow" aria-hidden="true">→</span>
+                </Link>
+
+                <Link
+                  to="/onboarding/goals"
+                  className="app-nav-popover-item"
+                  onClick={() => setPopoverOpen(false)}
+                >
+                  Career goals
+                </Link>
+
+                <button
+                  type="button"
+                  className="app-nav-popover-item"
+                  onClick={() => setPopoverOpen(false)}
+                >
+                  Premium
+                </button>
+              </div>
+
               <div className="app-nav-popover-divider" />
-              <Link
-                to="/settings"
-                className="app-nav-popover-link"
-                onClick={() => setPopoverOpen(false)}
-                data-testid="nav-profile-settings-link"
-              >
-                Profile &amp; Settings
-              </Link>
-              <div className="app-nav-popover-divider" />
+
               <button
                 type="button"
                 className="app-nav-popover-logout"
