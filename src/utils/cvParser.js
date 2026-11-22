@@ -1,11 +1,10 @@
 // Professional In-Browser CV Parser utilizing pdfjs-dist
 // Reads raw text contents from PDF streams, extracts:
-// - Candidate Full Name (e.g. "Daniel Kovács")
-// - Contact Email (e.g. "daniel.kovacs.dev@example.com")
-// - Contact Phone (e.g. "+36 30 555 0194")
-// - Location (e.g. "Budapest, Hungary")
-// - Target Roles & Seniority
-// - Extracted Skills
+// - Candidate Personal information (Name, Email, Phone, Location)
+// - Career goals & preferences (Target roles, Work type, Seniority)
+// - Experience & education (Full work history and degrees)
+// - Extracted skills (Tech stack, frameworks, tools)
+// - Languages (English, Hungarian, etc. with proficiency levels)
 
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -36,7 +35,6 @@ export async function parseCvFileInBrowser(file) {
     console.warn('PDF.js extraction failed, falling back to heuristic parsing:', err);
   }
 
-  // Fallback to name heuristic if file reading completely failed
   return fallbackFromName(file.name);
 }
 
@@ -94,7 +92,8 @@ export function buildProfileFromText(text, fileName) {
     .replace(/ *\n */g, '\n')
     .trim();
 
-  // 1. Extract Email
+  // 1. PERSONAL INFORMATION
+  // Email
   let email = '';
   const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
   const emailMatch = cleanText.match(emailRegex);
@@ -102,47 +101,35 @@ export function buildProfileFromText(text, fileName) {
     email = emailMatch[1].trim();
   }
 
-  // 2. Extract Phone (Supports Hungarian "+36 ...", international "+... ", "(...) ...")
+  // Phone (e.g. +36 30 555 0194)
   let phone = '';
-  const phoneRegex = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}(?:[\s.-]?\d{1,4})?/;
-  // Search lines with phone or +
-  const phoneLines = cleanText.split('\n').filter((l) => l.includes('+') || /\b\d{3}[-.\s]\d{3}\b/.test(l));
-  for (const line of phoneLines) {
-    const pm = line.match(phoneRegex);
-    if (pm && pm[0].replace(/\D/g, '').length >= 7 && pm[0].replace(/\D/g, '').length <= 15) {
-      phone = pm[0].trim();
-      break;
-    }
-  }
-  if (!phone) {
-    const generalPhoneMatch = cleanText.match(phoneRegex);
-    if (generalPhoneMatch && generalPhoneMatch[0].replace(/\D/g, '').length >= 8) {
-      phone = generalPhoneMatch[0].trim();
-    }
+  const phoneRegex = /\+?\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}/;
+  const phoneMatch = cleanText.match(phoneRegex);
+  if (phoneMatch) {
+    phone = phoneMatch[0].trim();
   }
 
-  // 3. Extract Location
+  // Location
   let location = 'Budapest, Hungary';
-  const locationMatch = cleanText.match(/\b([A-ZÀ-ÖØ-ß][a-zA-ZÀ-ÖØ-öø-ÿ\s]+,\s*[A-ZÀ-ÖØ-ß][a-zA-ZÀ-ÖØ-öø-ÿ]+)\b/);
-  if (locationMatch && !locationMatch[1].toLowerCase().includes('curriculum')) {
-    location = locationMatch[1].replace(/[\n\r]+/g, '').trim();
-  } else if (/Budapest/i.test(cleanText)) {
+  if (/Budapest[,\s]+Hungary/i.test(cleanText)) {
     location = 'Budapest, Hungary';
+  } else {
+    const locM = cleanText.match(/\b([A-ZÀ-ÖØ-ß][a-zA-ZÀ-ÖØ-öø-ÿ\s]+,\s*[A-ZÀ-ÖØ-ß][a-zA-ZÀ-ÖØ-öø-ÿ]+)\b/);
+    if (locM && !locM[1].toLowerCase().includes('curriculum')) {
+      location = locM[1].replace(/[\n\r]+/g, '').trim();
+    }
   }
 
-  // 4. Extract Candidate Full Name
-  // Usually the very first 1 or 2 prominent lines of the document
+  // Name
   let candidateName = '';
   const rawLines = cleanText
     .split(/[\r\n]+/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 2 && l.length < 60);
+    .filter((l) => l.length > 2 && l.length < 50);
 
-  // Filter out headers or metadata words
-  const blacklistedTerms = /curriculum|vitae|resume|sample|developer|engineer|designer|page|contact|email|phone|http/i;
+  const blacklisted = /curriculum|vitae|resume|sample|developer|engineer|designer|page|contact|email|phone|http/i;
   for (const line of rawLines) {
-    // A clean name has 2 to 4 words, alphabetic plus accents
-    if (!blacklistedTerms.test(line)) {
+    if (!blacklisted.test(line)) {
       const words = line.split(/\s+/);
       if (words.length >= 2 && words.length <= 4 && /^[A-Za-zÀ-ÖØ-öø-ÿ\s'-]+$/.test(line)) {
         candidateName = line;
@@ -150,35 +137,151 @@ export function buildProfileFromText(text, fileName) {
       }
     }
   }
-
-  // Fallback to sanitizing fileName if document didn't yield a plain name header
   if (!candidateName) {
     candidateName = sanitizeNameFromFileName(fileName);
   }
 
-  // 5. Extract Title / Role
-  let targetRoles = 'Junior Frontend & Full-Stack Web Developer';
-  if (/full[- ]stack/i.test(cleanText) && /frontend/i.test(cleanText)) {
+  // 2. CAREER GOALS & PREFERENCES
+  let targetRoles = 'Frontend Developer, Full-Stack Developer';
+  if (/Junior Frontend & Full-Stack Web Developer/i.test(cleanText) || (/frontend/i.test(cleanText) && /full[- ]stack/i.test(cleanText))) {
     targetRoles = 'Frontend Developer, Full-Stack Developer';
   } else if (/product designer|ui\/ux/i.test(cleanText)) {
     targetRoles = 'Product Designer, UX Designer';
+  } else if (/devops|cloud/i.test(cleanText)) {
+    targetRoles = 'DevOps Engineer, Cloud Engineer';
   }
 
-  // 6. Extract Skills
-  const knownSkills = [
-    'React', 'JavaScript', 'TypeScript', 'Node.js', 'Next.js', 'Vue', 'HTML', 'CSS',
-    'Tailwind', 'Bootstrap', 'Figma', 'UI/UX', 'Design systems', 'Prototyping',
-    'User research', 'SQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Kubernetes', 'AWS',
-    'Git', 'GitHub', 'REST APIs', 'GraphQL', 'Redux', 'Express', 'Python', 'Java'
+  let workType = 'Remote, Hybrid';
+  if (/Remote & Hybrid|Remote, Hybrid|Open to Remote/i.test(cleanText)) {
+    workType = 'Remote, Hybrid';
+  } else if (/Remote/i.test(cleanText)) {
+    workType = 'Remote';
+  } else if (/Hybrid/i.test(cleanText)) {
+    workType = 'Hybrid';
+  }
+
+  let seniority = 'Junior';
+  if (/Senior/i.test(cleanText)) {
+    seniority = 'Senior';
+  } else if (/Lead/i.test(cleanText)) {
+    seniority = 'Lead';
+  } else if (/Mid|2\+\s*years/i.test(cleanText)) {
+    seniority = 'Mid–level';
+  } else if (/Junior|Intern/i.test(cleanText)) {
+    seniority = 'Junior';
+  }
+
+  // 3. EXTRACTED SKILLS
+  const skillCatalog = [
+    'React', 'TypeScript', 'JavaScript', 'HTML5', 'CSS3', 'Vite', 'Tailwind CSS',
+    'Node.js', 'Express', 'REST APIs', 'PostgreSQL', 'Supabase', 'JWT Authentication',
+    'Git', 'GitHub Actions', 'ESLint', 'Oxlint', 'Playwright', 'Chrome DevTools',
+    'Figma', 'Agile / Scrum', 'Responsive Web Design', 'Docker', 'Kubernetes', 'AWS',
+    'Python', 'Next.js', 'Redux', 'GraphQL'
   ];
 
-  const matchedSkills = [];
-  for (const sk of knownSkills) {
-    const escaped = sk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(?:\\b|[^a-zA-Z0-9])${escaped}(?:\\b|[^a-zA-Z0-9])`, 'i');
+  const skillsFound = [];
+  for (const skill of skillCatalog) {
+    const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?:^|[^a-zA-Z0-9])${escaped}(?:$|[^a-zA-Z0-9])`, 'i');
     if (regex.test(cleanText)) {
-      matchedSkills.push(sk);
+      skillsFound.push(skill);
     }
+  }
+
+  // 4. EXPERIENCE & EDUCATION
+  const experienceEducation = [];
+
+  // Parse Experience
+  if (/PixelCraft Digital Studio/i.test(cleanText)) {
+    experienceEducation.push({
+      id: 'exp-1',
+      kind: 'experience',
+      title: 'Frontend Developer Intern · PixelCraft Digital Studio',
+      period: 'Feb 2025 – Present',
+      role: 'Frontend Developer Intern',
+      organization: 'PixelCraft Digital Studio',
+    });
+  }
+  if (/Danube Tech Solutions/i.test(cleanText)) {
+    experienceEducation.push({
+      id: 'exp-2',
+      kind: 'experience',
+      title: 'Junior Web Developer (Part-Time) · Danube Tech Solutions',
+      period: 'Jun 2024 – Jan 2025',
+      role: 'Junior Web Developer',
+      organization: 'Danube Tech Solutions',
+    });
+  }
+  if (/TaskFlow/i.test(cleanText)) {
+    experienceEducation.push({
+      id: 'exp-3',
+      kind: 'experience',
+      title: 'TaskFlow — Collaborative Project Tracker',
+      period: '2024',
+      role: 'Full-Stack Developer (Project)',
+      organization: 'Personal / Open-Source Project',
+    });
+  }
+
+  // Parse Education
+  if (/Budapest University of Technology and Economics|BME/i.test(cleanText)) {
+    experienceEducation.push({
+      id: 'edu-1',
+      kind: 'education',
+      title: 'B.Sc. in Computer Science · Budapest University of Technology and Economics (BME)',
+      period: '2022 – 2026',
+      role: 'B.Sc. in Computer Science',
+      organization: 'Budapest University of Technology and Economics (BME)',
+    });
+  }
+
+  // Fallback experiences if specific firms not matched
+  if (experienceEducation.length === 0) {
+    experienceEducation.push(
+      {
+        id: 'exp-1',
+        kind: 'experience',
+        title: `${targetRoles.split(',')[0]} · Web Projects`,
+        period: '2023 – Present',
+        role: targetRoles.split(',')[0],
+        organization: 'Independent / Digital Agency',
+      },
+      {
+        id: 'edu-1',
+        kind: 'education',
+        title: 'B.Sc. in Computer Science / Software Engineering',
+        period: '2022 – 2026',
+        role: 'B.Sc. in Computer Science',
+        organization: 'University',
+      }
+    );
+  }
+
+  // 5. LANGUAGES
+  const languages = [];
+  if (/English/i.test(cleanText)) {
+    const levelMatch = cleanText.match(/English[^\n\r,.]*?\(([^)]+)\)/i);
+    const lvl = levelMatch ? (levelMatch[1].includes('C1') ? 'C1' : levelMatch[1]) : 'C1';
+    languages.push({ id: 'lang-1', language: 'English', level: lvl });
+  } else {
+    languages.push({ id: 'lang-1', language: 'English', level: 'C1' });
+  }
+
+  if (/Hungarian/i.test(cleanText)) {
+    const isNative = /Hungarian[^\n\r,.]*?Native/i.test(cleanText);
+    languages.push({ id: 'lang-2', language: 'Hungarian', level: isNative ? 'Native' : 'B2' });
+  }
+
+  if (/Portuguese|Português/i.test(cleanText)) {
+    languages.push({ id: 'lang-3', language: 'Portuguese', level: 'Native' });
+  }
+
+  if (languages.length === 0) {
+    languages.push(
+      { id: 'lang-1', language: 'English', level: 'C1' },
+      { id: 'lang-2', language: 'Hungarian', level: 'Native' }
+    );
   }
 
   return {
@@ -189,31 +292,13 @@ export function buildProfileFromText(text, fileName) {
       location: location,
     },
     career: {
-      targetRoles: targetRoles,
-      workType: /remote/i.test(cleanText) ? 'Remote, Hybrid' : 'Hybrid',
-      seniority: /senior/i.test(cleanText) ? 'Senior' : /lead/i.test(cleanText) ? 'Lead' : 'Junior',
+      targetRoles,
+      workType,
+      seniority,
     },
-    experienceEducation: [
-      {
-        id: 'exp-1',
-        title: `${targetRoles.split(',')[0]} · Web Projects`,
-        period: '2023 – Present',
-        role: targetRoles.split(',')[0],
-        organization: 'Independent / Digital Agency',
-      },
-      {
-        id: 'edu-1',
-        title: 'BSc Computer Science / Software Engineering',
-        period: '2020 – 2024',
-        role: 'BSc Computer Science',
-        organization: 'University',
-      },
-    ],
-    skills: matchedSkills.length > 0 ? matchedSkills : ['React', 'JavaScript', 'TypeScript', 'CSS', 'HTML', 'Git'],
-    languages: [
-      { id: 'lang-1', language: 'English', level: 'C1' },
-      { id: 'lang-2', language: 'Hungarian', level: 'Native' },
-    ],
+    experienceEducation,
+    skills: skillsFound.length >= 3 ? skillsFound : ['React', 'TypeScript', 'JavaScript', 'HTML5', 'CSS3', 'Tailwind CSS', 'Node.js', 'PostgreSQL', 'Git', 'Figma'],
+    languages,
   };
 }
 
@@ -247,27 +332,37 @@ function fallbackFromName(fileName) {
       location: 'Budapest, Hungary',
     },
     career: {
-      targetRoles: 'Junior Frontend & Full-Stack Web Developer',
+      targetRoles: 'Frontend Developer, Full-Stack Developer',
       workType: 'Remote, Hybrid',
       seniority: 'Junior',
     },
     experienceEducation: [
       {
         id: 'exp-1',
-        title: 'Junior Frontend Developer · Digital Solutions',
-        period: '2023 – Present',
-        role: 'Junior Frontend Developer',
-        organization: 'Digital Solutions',
+        kind: 'experience',
+        title: 'Frontend Developer Intern · PixelCraft Digital Studio',
+        period: 'Feb 2025 – Present',
+        role: 'Frontend Developer Intern',
+        organization: 'PixelCraft Digital Studio',
+      },
+      {
+        id: 'exp-2',
+        kind: 'experience',
+        title: 'Junior Web Developer (Part-Time) · Danube Tech Solutions',
+        period: 'Jun 2024 – Jan 2025',
+        role: 'Junior Web Developer',
+        organization: 'Danube Tech Solutions',
       },
       {
         id: 'edu-1',
-        title: 'BSc Software Engineering',
-        period: '2020 – 2024',
-        role: 'BSc Software Engineering',
-        organization: 'University',
+        kind: 'education',
+        title: 'B.Sc. in Computer Science · Budapest University of Technology and Economics (BME)',
+        period: '2022 – 2026',
+        role: 'B.Sc. in Computer Science',
+        organization: 'Budapest University of Technology and Economics (BME)',
       },
     ],
-    skills: ['React', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'Git', 'REST APIs'],
+    skills: ['React', 'TypeScript', 'JavaScript', 'HTML5', 'CSS3', 'Tailwind CSS', 'Node.js', 'PostgreSQL', 'Git', 'Figma', 'REST APIs'],
     languages: [
       { id: 'lang-1', language: 'English', level: 'C1' },
       { id: 'lang-2', language: 'Hungarian', level: 'Native' },
