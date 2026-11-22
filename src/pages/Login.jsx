@@ -136,6 +136,10 @@ export default function Login() {
   )
 
   return (
+    <title>Log in — Matchwise</title>
+      <meta name="description" content="Log in to your Matchwise account to view your AI job matches and track your applications." />
+      <link rel="canonical" href="https://matchwise.tech/login" />
+
     <AuthLayout
       pageType="login"
       eyebrowText="YOUR WORKSPACE IS READY"
