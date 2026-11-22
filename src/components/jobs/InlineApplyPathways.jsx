@@ -286,9 +286,11 @@ export default function InlineApplyPathways({
           <button
             type="button"
             className="inline-pathways-action-btn"
-            onClick={() => onSelectPathway('auto', job)}
+            disabled={true}
+            style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            title="Auto-apply rule saving coming soon"
           >
-            Save auto-apply rule →
+            Auto-apply coming soon
           </button>
         ) : (
           <button

@@ -388,18 +388,19 @@ export default function ProfileSettings() {
                     <label htmlFor="prof-phone" className="profile-form-label">
                       Phone
                     </label>
-                    {profileData.isPhoneVerified ? (
-                      <span className="profile-verified-tag">✓ Verified</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="profile-verify-tag-btn"
-                        onClick={() => setIsVerifyPhoneOpen(true)}
-                        data-testid="profile-verify-phone-btn"
-                      >
-                        Verify
-                      </button>
-                    )}
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        color: '#65756c',
+                        backgroundColor: '#eef2ee',
+                        padding: '2px 8px',
+                        borderRadius: '10px'
+                      }}
+                      title="SMS phone verification coming soon"
+                    >
+                      Verification coming soon
+                    </span>
                   </div>
                   <input
                     id="prof-phone"
