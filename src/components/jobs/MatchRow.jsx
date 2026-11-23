@@ -1,4 +1,5 @@
 import React from 'react';
+import { isJobSaved, toggleSaveJob } from '../../api/savedJobs';
 import './MatchRow.css';
 
 export default function MatchRow({
@@ -9,6 +10,14 @@ export default function MatchRow({
   isExpanded = false,
   onToggleExpand,
 }) {
+  const [saved, setSaved] = React.useState(() => (job?.id ? isJobSaved(job.id) : false));
+  const [lastJobId, setLastJobId] = React.useState(job?.id);
+
+  if (job?.id !== lastJobId) {
+    setLastJobId(job?.id);
+    setSaved(job?.id ? isJobSaved(job.id) : false);
+  }
+
   if (!job) return null;
 
   const {
@@ -62,6 +71,23 @@ export default function MatchRow({
         </div>
 
         <div className="match-row-right">
+          <button
+            type="button"
+            className="drawer-bookmark-btn"
+            style={{ width: '32px', height: '32px', padding: 0 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const now = toggleSaveJob(job);
+              setSaved(now);
+            }}
+            title={saved ? 'Remove from saved' : 'Save job'}
+            aria-label={saved ? 'Remove from saved' : 'Save job'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={saved ? '#10261B' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
+
           <span className="match-row-new-badge">New</span>
 
           {isApplied ? (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getApplications, getTailorings, getTailoringDetail } from '../api/applications';
+import { getSavedJobs } from '../api/savedJobs';
 import { useAuth } from '../auth';
 import './ApplicationTracker.css';
 
@@ -33,15 +34,22 @@ function getRelativeTime(isoString) {
 export default function ApplicationTracker() {
   const { token } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [savedJobs] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('matchwise_saved_jobs') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [savedJobs, setSavedJobs] = useState(getSavedJobs);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Sync saved jobs if updated from other tabs/modals
+  useEffect(() => {
+    const handleSync = () => {
+      setSavedJobs(getSavedJobs());
+    };
+    window.addEventListener('matchwise_saved_jobs_changed', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('matchwise_saved_jobs_changed', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
