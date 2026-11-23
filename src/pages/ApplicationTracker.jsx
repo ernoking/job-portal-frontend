@@ -225,9 +225,10 @@ export default function ApplicationTracker() {
                 topMatches.map((job, idx) => (
                   <div
                     key={job.id || idx}
-                    className="tracker-card"
+                    className={`tracker-card ${selectedItem?.job?.id === job.id && selectedItem?.status === 'saved' ? 'is-selected' : ''}`}
                     onClick={() =>
                       handleSelectItem({
+                        id: `saved-${job.id || idx}`,
                         job,
                         status: 'saved',
                         stageLabel: 'Saved Match',
@@ -422,26 +423,39 @@ export default function ApplicationTracker() {
                   <h4 className="tracker-section-title">Status timeline</h4>
                 </div>
                 <div className="tracker-timeline">
-                  {/* Applied - active/current real status (green dot with black border) */}
-                  <div className="tracker-timeline-item">
-                    <div className="tracker-timeline-left">
-                      <span
-                        className={`timeline-dot ${
-                          selectedItem.status === 'responded' ||
-                          selectedItem.status === 'interview' ||
-                          selectedItem.status === 'offered'
-                            ? 'is-completed'
-                            : 'is-active'
-                        }`}
-                      />
-                      <span className="timeline-label">Applied</span>
+                  {/* Saved Match - when viewed from Saved / Top matches */}
+                  {selectedItem.status === 'saved' && (
+                    <div className="tracker-timeline-item">
+                      <div className="tracker-timeline-left">
+                        <span className="timeline-dot is-active" />
+                        <span className="timeline-label">Saved Match</span>
+                      </div>
+                      <span className="timeline-date">Today</span>
                     </div>
-                    <span className="timeline-date">
-                      {formatDate(selectedItem.appliedAt || selectedItem.createdAt)}
-                    </span>
-                  </div>
+                  )}
 
-                  {/* Responded - when not yet reached, hollow circle; becomes green if active */}
+                  {/* Applied - active only if the job was actually applied */}
+                  {selectedItem.appliedAt || selectedItem.status !== 'saved' ? (
+                    <div className="tracker-timeline-item">
+                      <div className="tracker-timeline-left">
+                        <span
+                          className={`timeline-dot ${
+                            selectedItem.status === 'responded' ||
+                            selectedItem.status === 'interview' ||
+                            selectedItem.status === 'offered'
+                              ? 'is-completed'
+                              : 'is-active'
+                          }`}
+                        />
+                        <span className="timeline-label">Applied</span>
+                      </div>
+                      <span className="timeline-date">
+                        {formatDate(selectedItem.appliedAt || selectedItem.createdAt)}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {/* Responded - when actually reached on backend */}
                   {selectedItem.respondedAt || selectedItem.status === 'responded' ? (
                     <div className="tracker-timeline-item">
                       <div className="tracker-timeline-left">
@@ -460,7 +474,7 @@ export default function ApplicationTracker() {
                     </div>
                   ) : null}
 
-                  {/* Interview - when reached */}
+                  {/* Interview - when actually reached on backend */}
                   {selectedItem.interviewAt || selectedItem.status === 'interview' ? (
                     <div className="tracker-timeline-item">
                       <div className="tracker-timeline-left">
@@ -550,39 +564,47 @@ export default function ApplicationTracker() {
                 />
               </div>
 
-              {/* Salary Tracking Inputs Matching Figma */}
+              {/* Salary Tracking (Real job posted salary if available, otherwise Coming Soon) */}
               <div className="tracker-drawer-section">
                 <div className="tracker-section-head">
                   <h4 className="tracker-section-title">Salary tracking</h4>
+                  <span style={{ fontSize: '11px', color: '#667085', fontWeight: 600 }}>Coming Soon</span>
                 </div>
-                <div className="tracker-salary-grid">
-                  <div className="tracker-salary-field">
-                    <label>POSTED RANGE</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      value={selectedItem.job?.salary || 'HUF 900k–1.2M / month'}
-                      readOnly
-                    />
+                {selectedItem.job?.salary ? (
+                  <div className="tracker-salary-grid">
+                    <div className="tracker-salary-field">
+                      <label>POSTED RANGE</label>
+                      <input
+                        type="text"
+                        className="tracker-salary-input"
+                        value={selectedItem.job.salary}
+                        readOnly
+                      />
+                    </div>
+                    <div className="tracker-salary-field">
+                      <label>MY EXPECTATION</label>
+                      <input
+                        type="text"
+                        className="tracker-salary-input"
+                        placeholder="Coming Soon"
+                        readOnly
+                      />
+                    </div>
+                    <div className="tracker-salary-field">
+                      <label>OFFER RECEIVED</label>
+                      <input
+                        type="text"
+                        className="tracker-salary-input"
+                        value="—"
+                        readOnly
+                      />
+                    </div>
                   </div>
-                  <div className="tracker-salary-field">
-                    <label>MY EXPECTATION</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      defaultValue="HUF 1.1M / month"
-                    />
+                ) : (
+                  <div style={{ fontSize: '13px', color: '#667085', fontStyle: 'italic', background: '#f9fafb', padding: '12px', borderRadius: '8px', border: '1px solid #eaecf0' }}>
+                    Salary tracking & offer negotiations will be connected to upcoming backend compensation endpoints.
                   </div>
-                  <div className="tracker-salary-field">
-                    <label>OFFER RECEIVED</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      defaultValue="—"
-                      readOnly
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Employer / Job Link */}

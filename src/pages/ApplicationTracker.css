@@ -200,8 +200,8 @@
 }
 
 .tracker-card.is-selected {
-  border: 2px solid #15241d;
-  box-shadow: 0 0 0 3px rgba(21, 36, 29, 0.1);
+  border: 2px solid #a3e635;
+  box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.25);
 }
 
 .tracker-card-top {
