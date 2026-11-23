@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getApplications, getTailorings, getTailoringDetail } from '../api/applications';
-import { getMatches } from '../api/jobs';
 import { useAuth } from '../auth';
 import './ApplicationTracker.css';
 
@@ -34,7 +33,13 @@ function getRelativeTime(isoString) {
 export default function ApplicationTracker() {
   const { token } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [topMatches, setTopMatches] = useState([]);
+  const [savedJobs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('matchwise_saved_jobs') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -49,30 +54,22 @@ export default function ApplicationTracker() {
     }
   });
 
-  // Load real applications and top matches from backend APIs
+  // Load real applications for candidate
   useEffect(() => {
     let isMounted = true;
 
-    Promise.allSettled([
-      getApplications({}, token),
-      getMatches({ limit: 10 }).catch(() => ({ jobs: [] })),
-    ]).then(([appsResult, matchesResult]) => {
-      if (!isMounted) return;
-
-      if (appsResult.status === 'fulfilled') {
-        setApplications(appsResult.value?.applications || []);
+    getApplications({}, token)
+      .then((res) => {
+        if (!isMounted) return;
+        setApplications(res?.applications || []);
         setError(null);
-      } else {
-        setError(appsResult.reason || new Error('Failed to load applications.'));
-      }
-
-      if (matchesResult.status === 'fulfilled') {
-        const jobs = matchesResult.value?.jobs || matchesResult.value?.matches || [];
-        setTopMatches(jobs.slice(0, 5));
-      }
-
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setError(err || new Error('Failed to load applications.'));
+        setIsLoading(false);
+      });
 
     return () => {
       isMounted = false;
@@ -214,15 +211,15 @@ export default function ApplicationTracker() {
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Saved / Top matches</span>
-              <span className="tracker-col-count">{topMatches.length}</span>
+              <span className="tracker-col-count">{savedJobs.length}</span>
             </div>
             <div className="tracker-cards-list">
-              {topMatches.length === 0 ? (
-                <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
-                  No top matches saved yet.
+              {savedJobs.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '36px 12px' }}>
+                  No saved roles yet. Browse jobs to save opportunities.
                 </div>
               ) : (
-                topMatches.map((job, idx) => (
+                savedJobs.map((job, idx) => (
                   <div
                     key={job.id || idx}
                     className={`tracker-card ${selectedItem?.job?.id === job.id && selectedItem?.status === 'saved' ? 'is-selected' : ''}`}
