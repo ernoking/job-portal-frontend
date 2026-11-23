@@ -6,6 +6,8 @@ import FeaturedMatch from '../components/jobs/FeaturedMatch';
 import MatchRow from '../components/jobs/MatchRow';
 import MatchDrawer from '../components/jobs/MatchDrawer';
 import InlineApplyPathways from '../components/jobs/InlineApplyPathways';
+import { getApplications } from '../api/applications';
+import { useAuth } from '../auth';
 import {
   getMatches,
   getMatchDetail,
@@ -27,6 +29,7 @@ const INITIAL_FILTERS = {
 export default function JobsFeed() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   // Filters state starts with the displayed defaults immediately (Finding [P2])
   const [filters, setFilters] = useState(INITIAL_FILTERS);
@@ -52,10 +55,33 @@ export default function JobsFeed() {
   // Feed segment filter (Figma 209:645)
   const [activeSegment, setActiveSegment] = useState('all');
 
-  // Application tracking state (will be connected to real application history API)
-  const [appliedJobIds] = useState(() => new Set());
+  // Application tracking state: connected to real application history API
+  const [appliedJobIds, setAppliedJobIds] = useState(() => new Set());
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [showInlinePathways, setShowInlinePathways] = useState(false);
+
+  // Load candidate's real applications from backend
+  useEffect(() => {
+    let isMounted = true;
+    getApplications({}, token)
+      .then((res) => {
+        if (isMounted && res?.applications) {
+          const ids = new Set(
+            res.applications
+              .map((app) => app.job?.id || app.jobId)
+              .filter(Boolean)
+          );
+          setAppliedJobIds(ids);
+        }
+      })
+      .catch(() => {
+        // Silently keep default set if unauthenticated or offline
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   // Drawer detail states
   const jobParam = searchParams.get('job');

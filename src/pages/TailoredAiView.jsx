@@ -1,24 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import AiRateLimitBanner from '../components/common/AiRateLimitBanner';
 import { getMatchDetail } from '../api/jobs';
+import { generateTailoring, downloadTailoredDoc, applyToJob } from '../api/applications';
+import { useAuth } from '../auth';
 import { MOCK_JOBS } from '../mocks/jobs';
 import './TailoredAiView.css';
 
 export default function TailoredAiView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tailored'); // 'tailored' | 'original'
   const [tone, setTone] = useState('professional'); // 'professional' | 'friendly' | 'concise'
   const [aiError, setAiError] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [tailoringData, setTailoringData] = useState(null);
+  const [isDownloadingResume, setIsDownloadingResume] = useState(false);
+  const [isDownloadingLetter, setIsDownloadingLetter] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applySuccess, setApplySuccess] = useState(false);
+  const [applyError, setApplyError] = useState('');
+  const [externalApplyUrl, setExternalApplyUrl] = useState(null);
 
-  const [coverLetter, setCoverLetter] = useState(
-    `Dear Northstar Labs hiring team,\n\nI am writing to express my interest in this position. (AI letter generation will be available once connected to the backend).\n\nBest regards,\nAlex Morgan`
-  );
+  const [coverLetter, setCoverLetter] = useState('');
+
+  const handleGenerate = useCallback(async (selectedTone = tone) => {
+    const targetId = job?.id || id;
+    if (!targetId) return;
+
+    setIsGenerating(true);
+    setAiError(null);
+    try {
+      const res = await generateTailoring(targetId, { tone: selectedTone }, token);
+      if (res?.tailoring) {
+        setTailoringData(res.tailoring);
+        if (res.tailoring.coverLetter) {
+          setCoverLetter(res.tailoring.coverLetter);
+        }
+      }
+    } catch (err) {
+      if (err?.status === 429) {
+        setAiError(err);
+      } else {
+        setAiError({
+          status: err?.status || 500,
+          message: err?.message || 'Unable to tailor application documents right now. Please try again.',
+        });
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [job?.id, id, tone, token]);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,6 +81,61 @@ export default function TailoredAiView() {
       isMounted = false;
     };
   }, [id]);
+
+  const handleToneChange = (newTone) => {
+    setTone(newTone);
+    handleGenerate(newTone);
+  };
+
+  const handleDownload = async (type) => {
+    if (!tailoringData?.id) return;
+    try {
+      if (type === 'resume') setIsDownloadingResume(true);
+      if (type === 'cover-letter') setIsDownloadingLetter(true);
+
+      const blob = await downloadTailoredDoc(tailoringData.id, type, token);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${type === 'resume' ? 'tailored-cv' : 'tailored-cover-letter'}-${job?.company || 'job'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(`Download failed: ${err.message}`);
+    } finally {
+      if (type === 'resume') setIsDownloadingResume(false);
+      if (type === 'cover-letter') setIsDownloadingLetter(false);
+    }
+  };
+
+  const handleApply = async () => {
+    const targetJobId = job?.id || id;
+    if (!targetJobId) return;
+
+    setIsSubmitting(true);
+    setApplyError('');
+    try {
+      const res = await applyToJob(targetJobId, token);
+      setApplySuccess(true);
+      const targetUrl = res?.applyUrl || job?.url;
+      if (targetUrl) {
+        setExternalApplyUrl(targetUrl);
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      if (err?.data?.error?.code === 'ALREADY_APPLIED') {
+        setApplyError('You have already applied to this job.');
+      } else if (err?.data?.error?.code === 'JOB_CLOSED') {
+        setApplyError('This job is no longer open for applications.');
+      } else {
+        setApplyError(err?.message || 'Unable to record your application.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
 
 
@@ -77,23 +169,32 @@ export default function TailoredAiView() {
 
         {/* Title */}
         <header className="tailored-title-block">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 className="tailored-page-title">Tailor your application</h1>
-            <span style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#344054',
-              backgroundColor: '#f2f4f7',
-              border: '1px solid #eaecf0',
-              padding: '3px 8px',
-              borderRadius: '12px'
-            }}>
-              AI generation coming soon
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h1 className="tailored-page-title">Tailor your application</h1>
+              <p className="tailored-page-sub">
+                AI customises your CV profile highlights and crafts a role-tailored cover letter based on your real profile.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="tailored-generate-btn"
+              onClick={() => handleGenerate(tone)}
+              disabled={isGenerating}
+              style={{
+                backgroundColor: '#15241d',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontWeight: 600,
+                cursor: isGenerating ? 'wait' : 'pointer',
+                opacity: isGenerating ? 0.7 : 1,
+              }}
+            >
+              {isGenerating ? 'Tailoring with AI...' : '✨ Generate Tailored Documents'}
+            </button>
           </div>
-          <p className="tailored-page-sub">
-            AI tailoring will adjust your resume highlights and draft a role-specific cover letter once connected to the backend.
-          </p>
         </header>
 
         {/* Target Job Header Card */}
@@ -120,24 +221,48 @@ export default function TailoredAiView() {
           <div className="tailored-col-card">
             <div className="tailored-card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 className="tailored-card-title">Resume preview</h3>
-                <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Sample</span>
+                <h3 className="tailored-card-title">Tailored Resume</h3>
+                {tailoringData ? (
+                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>AI Tailored</span>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Draft</span>
+                )}
               </div>
-              <div className="tailored-pill-tabs">
-                <button
-                  type="button"
-                  className={`tailored-pill-tab ${activeTab === 'tailored' ? 'is-active' : ''}`}
-                  onClick={() => setActiveTab('tailored')}
-                >
-                  Tailored
-                </button>
-                <button
-                  type="button"
-                  className={`tailored-pill-tab ${activeTab === 'original' ? 'is-active' : ''}`}
-                  onClick={() => setActiveTab('original')}
-                >
-                  Original
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {tailoringData?.id && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownload('resume')}
+                    disabled={isDownloadingResume}
+                    style={{
+                      background: 'none',
+                      border: '1px solid #d0d5dd',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isDownloadingResume ? 'Downloading...' : '⬇ Download CV (.txt)'}
+                  </button>
+                )}
+                <div className="tailored-pill-tabs">
+                  <button
+                    type="button"
+                    className={`tailored-pill-tab ${activeTab === 'tailored' ? 'is-active' : ''}`}
+                    onClick={() => setActiveTab('tailored')}
+                  >
+                    Tailored
+                  </button>
+                  <button
+                    type="button"
+                    className={`tailored-pill-tab ${activeTab === 'original' ? 'is-active' : ''}`}
+                    onClick={() => setActiveTab('original')}
+                  >
+                    Original
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -199,18 +324,41 @@ export default function TailoredAiView() {
             <div className="tailored-card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 className="tailored-card-title">Cover letter</h3>
-                <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Sample</span>
+                {tailoringData ? (
+                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>AI Tailored</span>
+                ) : (
+                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Draft</span>
+                )}
               </div>
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: '#98a2b3',
-                  cursor: 'not-allowed',
-                }}
-                title="AI regeneration coming soon"
-              >
-                Regenerate (Coming soon)
-              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {tailoringData?.id && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownload('cover-letter')}
+                    disabled={isDownloadingLetter}
+                    style={{
+                      background: 'none',
+                      border: '1px solid #d0d5dd',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isDownloadingLetter ? 'Downloading...' : '⬇ Download (.txt)'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tailored-regenerate-link"
+                  disabled={isGenerating}
+                  onClick={() => handleGenerate(tone)}
+                  style={{ cursor: isGenerating ? 'wait' : 'pointer' }}
+                >
+                  {isGenerating ? 'Generating...' : 'Regenerate'}
+                </button>
+              </div>
             </div>
 
             {/* Tone selector row */}
@@ -222,7 +370,7 @@ export default function TailoredAiView() {
                     key={t}
                     type="button"
                     className={`tone-chip ${tone === t.toLowerCase() ? 'is-selected' : ''}`}
-                    onClick={() => setTone(t.toLowerCase())}
+                    onClick={() => handleToneChange(t.toLowerCase())}
                   >
                     {t}
                   </button>
@@ -250,27 +398,48 @@ export default function TailoredAiView() {
           <Link to="/matches" className="tailored-bar-back-btn">
             ← Back to options
           </Link>
-          <div className="tailored-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#55695f' }}>
-              Submission coming soon
-            </span>
-            <button
-              type="button"
-              className="tailored-bar-save-btn"
-              onClick={() => navigate('/matches')}
-            >
-              Save draft
-            </button>
-            <button
-              type="button"
-              className="tailored-bar-submit-btn"
-              disabled={true}
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
-              title="Application submission coming soon"
-            >
-              Submission coming soon
-            </button>
-          </div>
+
+          {applySuccess ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: '#027a48', fontWeight: 600, fontSize: '13px' }}>
+                ✓ Application logged in Matchwise
+              </span>
+              {externalApplyUrl && (
+                <a
+                  href={externalApplyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tailored-bar-submit-btn"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  Open Employer Site ↗
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="tailored-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {applyError && (
+                <span style={{ fontSize: '13px', color: '#b42318' }}>
+                  {applyError}
+                </span>
+              )}
+              <button
+                type="button"
+                className="tailored-bar-save-btn"
+                onClick={() => navigate('/matches')}
+              >
+                Back to Feed
+              </button>
+              <button
+                type="button"
+                className="tailored-bar-submit-btn"
+                onClick={handleApply}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Recording...' : 'Apply on employer website →'}
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>
