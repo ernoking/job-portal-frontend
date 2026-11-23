@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyToJob, getApplications, generateTailoring, downloadTailoredDoc, getTailoringDetail } from '../src/api/applications.js';
+import {
+  applyToJob,
+  getApplications,
+  generateTailoring,
+  getTailorings,
+  getTailoringDetail,
+  downloadTailoredDoc,
+} from '../src/api/applications.js';
 
 test('applyToJob sends POST /api/jobs/:id/apply with Bearer token', async () => {
   const originalFetch = globalThis.fetch;
@@ -163,4 +170,98 @@ test('cover letter edited in state creates a blob preserving user edits', async 
   const text = await blob.text();
   assert.equal(text, editedText);
   assert(text.includes('edited sentence'));
+});
+
+test('saved document retrieval handles 503 failure and subsequent successful retry without POST /tailor', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  let failFirst = true;
+
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push({ url, method: options.method || 'GET' });
+
+    if (url.includes('/tailorings') && failFirst) {
+      failFirst = false;
+      return {
+        status: 503,
+        ok: false,
+        headers: {
+          get(header) {
+            if (header.toLowerCase() === 'content-type') return 'application/json';
+            return null;
+          },
+        },
+        json: async () => ({
+          error: { code: 'SERVICE_UNAVAILABLE', message: 'Tailoring history temporary unavailable' },
+        }),
+      };
+    }
+
+    if (url === '/api/jobs/job-123/tailorings') {
+      return {
+        status: 200,
+        ok: true,
+        headers: {
+          get(header) {
+            if (header.toLowerCase() === 'content-type') return 'application/json';
+            return null;
+          },
+        },
+        json: async () => ({
+          tailorings: [{ id: 'tailor-prev', tone: 'concise', createdAt: '2026-11-23T20:00:00Z' }],
+        }),
+      };
+    }
+
+    if (url === '/api/tailorings/tailor-prev') {
+      return {
+        status: 200,
+        ok: true,
+        headers: {
+          get(header) {
+            if (header.toLowerCase() === 'content-type') return 'application/json';
+            return null;
+          },
+        },
+        json: async () => ({
+          tailoring: {
+            id: 'tailor-prev',
+            tone: 'concise',
+            coverLetter: 'Restored cover letter',
+            tailoredProfile: { fullName: 'Candidate' },
+          },
+        }),
+      };
+    }
+
+    throw new Error(`Unexpected request: ${url}`);
+  };
+
+  try {
+    // 1. Initial attempt fails with 503
+    let errorCaught = null;
+    try {
+      await getTailorings('job-123', 'fake-token');
+    } catch (err) {
+      errorCaught = err;
+    }
+    assert(errorCaught, 'Expected 503 error on first retrieval');
+    assert.equal(errorCaught.status, 503);
+
+    // 2. Retry succeeds without calling POST /tailor
+    const tailoringsRes = await getTailorings('job-123', 'fake-token');
+    assert.equal(tailoringsRes.tailorings.length, 1);
+
+    const detailRes = await getTailoringDetail(tailoringsRes.tailorings[0].id, 'fake-token');
+    assert.equal(detailRes.tailoring.id, 'tailor-prev');
+    assert.equal(detailRes.tailoring.coverLetter, 'Restored cover letter');
+
+    // Verify none of the requests were POST /tailor (no AI allowance was consumed)
+    const postTailorCalls = requests.filter(
+      (r) => r.method === 'POST' && r.url.endsWith('/tailor')
+    );
+    assert.equal(postTailorCalls.length, 0, 'No POST /tailor generation call should be made during retry');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

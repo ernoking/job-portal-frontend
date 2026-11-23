@@ -29,6 +29,8 @@ export default function TailoredAiView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [tailoringData, setTailoringData] = useState(null);
   const [savedVersions, setSavedVersions] = useState([]);
+  const [historyError, setHistoryError] = useState(null);
+  const [isRetryingHistory, setIsRetryingHistory] = useState(false);
   const [isDownloadingResume, setIsDownloadingResume] = useState(false);
   const [isDownloadingLetter, setIsDownloadingLetter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +40,35 @@ export default function TailoredAiView() {
 
   const [coverLetter, setCoverLetter] = useState('');
 
-  // Loads base profile, job details, and any existing saved tailorings on mount
+  // Loads base profile, job details, and any existing saved tailorings
+  const loadSavedHistory = useCallback(
+    async (targetJobId, authToken) => {
+      if (!targetJobId || !authToken) return;
+      setHistoryError(null);
+      setIsRetryingHistory(true);
+      try {
+        const tailoringsRes = await getTailorings(targetJobId, authToken);
+        const versions = tailoringsRes?.tailorings || [];
+        setSavedVersions(versions);
+
+        if (versions.length > 0) {
+          const latestId = versions[0].id;
+          const detailRes = await getTailoringDetail(latestId, authToken);
+          if (detailRes?.tailoring) {
+            setTailoringData(detailRes.tailoring);
+            if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
+            if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+          }
+        }
+      } catch (err) {
+        setHistoryError(err || new Error('Failed to load saved tailoring documents'));
+      } finally {
+        setIsRetryingHistory(false);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     let isMounted = true;
 
@@ -54,28 +84,14 @@ export default function TailoredAiView() {
 
         const profileData = await getProfile().catch(() => null);
 
-        let versions = [];
-        let latestTailoring = null;
-        if (id && token) {
-          const tailoringsRes = await getTailorings(id, token).catch(() => null);
-          if (tailoringsRes?.tailorings?.length > 0) {
-            versions = tailoringsRes.tailorings;
-            const latestId = versions[0].id;
-            const detailRes = await getTailoringDetail(latestId, token).catch(() => null);
-            latestTailoring = detailRes?.tailoring || null;
-          }
-        }
-
         if (isMounted) {
           setJob(jobData);
           if (profileData) setBaseProfile(profileData);
-          setSavedVersions(versions);
-          if (latestTailoring) {
-            setTailoringData(latestTailoring);
-            if (latestTailoring.tone) setTone(latestTailoring.tone);
-            if (latestTailoring.coverLetter) setCoverLetter(latestTailoring.coverLetter);
-          }
           setIsLoading(false);
+        }
+
+        if (id && token) {
+          await loadSavedHistory(id, token);
         }
       } catch {
         if (isMounted) setIsLoading(false);
@@ -87,7 +103,7 @@ export default function TailoredAiView() {
     return () => {
       isMounted = false;
     };
-  }, [id, token]);
+  }, [id, token, loadSavedHistory]);
 
   const handleGenerate = useCallback(
     async (selectedTone = tone) => {
@@ -236,6 +252,49 @@ export default function TailoredAiView() {
             ← Back to job
           </Link>
         </div>
+
+        {/* History / Detail loading error banner with Retry retrieval */}
+        {historyError && (
+          <div
+            className="tailored-history-error-banner"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#fef3f2',
+              border: '1px solid #fee4e2',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              color: '#b42318',
+              fontSize: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span aria-hidden="true">⚠️</span>
+              <span>
+                <strong>Unable to load saved documents:</strong> {historyError?.message || 'Network or service error'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadSavedHistory(id, token)}
+              disabled={isRetryingHistory}
+              style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #d0d5dd',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#344054',
+                cursor: isRetryingHistory ? 'wait' : 'pointer',
+              }}
+            >
+              {isRetryingHistory ? 'Retrying...' : 'Retry loading'}
+            </button>
+          </div>
+        )}
 
         {/* Title */}
         <header className="tailored-title-block">
