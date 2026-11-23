@@ -265,3 +265,56 @@ test('saved document retrieval handles 503 failure and subsequent successful ret
     globalThis.fetch = originalFetch;
   }
 });
+
+test('getApplications formats application history items with status, method, and job details', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    status: 200,
+    ok: true,
+    headers: {
+      get: (h) => (h.toLowerCase() === 'content-type' ? 'application/json' : null),
+    },
+    json: async () => ({
+      applications: [
+        {
+          id: 'app-manual-1',
+          status: 'applied',
+          method: 'manual',
+          appliedAt: '2026-11-23T10:00:00Z',
+          job: {
+            id: 'job-1',
+            title: 'Frontend Engineer',
+            company: 'TechCorp',
+            location: 'Remote',
+            isActive: true,
+          },
+        },
+        {
+          id: 'app-auto-2',
+          status: 'applied',
+          method: 'auto',
+          appliedAt: '2026-11-22T14:30:00Z',
+          job: {
+            id: 'job-2',
+            title: 'Backend Developer',
+            company: 'DevStudio',
+            location: 'London, UK',
+            isActive: false,
+          },
+        },
+      ],
+      total: 2,
+    }),
+  });
+
+  try {
+    const res = await getApplications({}, 'token-123');
+    assert.equal(res.total, 2);
+    assert.equal(res.applications[0].method, 'manual');
+    assert.equal(res.applications[0].job.isActive, true);
+    assert.equal(res.applications[1].method, 'auto');
+    assert.equal(res.applications[1].job.isActive, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
