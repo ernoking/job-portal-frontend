@@ -1,231 +1,124 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
-import { getApplications } from '../api/applications';
+import { getApplications, getTailorings, getTailoringDetail } from '../api/applications';
+import { getMatches } from '../api/jobs';
 import { useAuth } from '../auth';
 import './ApplicationTracker.css';
 
 export default function ApplicationTracker() {
   const { token } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [, setIsLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [topMatches, setTopMatches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load real applications and populate pipeline columns
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [tailoringInfo, setTailoringInfo] = useState(null);
+  const [personalNotes, setPersonalNotes] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('matchwise_tracker_notes') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  // Load real applications and top matches from backend APIs
   useEffect(() => {
     let isMounted = true;
-    getApplications({}, token)
-      .then((res) => {
-        if (!isMounted) return;
-        setApplications(res?.applications || []);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setApplications([]);
-        setIsLoading(false);
-      });
+
+    Promise.allSettled([
+      getApplications({}, token),
+      getMatches({ limit: 10 }).catch(() => ({ jobs: [] })),
+    ]).then(([appsResult, matchesResult]) => {
+      if (!isMounted) return;
+
+      if (appsResult.status === 'fulfilled') {
+        setApplications(appsResult.value?.applications || []);
+        setError(null);
+      } else {
+        setError(appsResult.reason || new Error('Failed to load applications.'));
+      }
+
+      if (matchesResult.status === 'fulfilled') {
+        const jobs = matchesResult.value?.jobs || matchesResult.value?.matches || [];
+        setTopMatches(jobs.slice(0, 5));
+      }
+
+      setIsLoading(false);
+    });
 
     return () => {
       isMounted = false;
     };
   }, [token]);
 
-  // Merge real applications with job reference metadata matching Figma design
-  // Pipeline Stages:
-  // 1. Saved / Top 10 matches
-  // 2. Applied
-  // 3. Responded
-  // 4. Interviewed
-  // 5. Offered
+  // Load tailored CV/cover letter details when an application item is selected in drawer
+  useEffect(() => {
+    if (!selectedItem?.job?.id || !token) return;
 
-  // Match real applications or default sample cards directly from Figma layout
-  const savedMatches = [
-    {
-      id: 'saved-1',
-      title: 'Product Designer',
-      company: 'Northstar Labs',
-      companyInitial: 'N',
-      location: 'Budapest · Hybrid',
-      fit: 94,
-      isTopMatch: true,
-      hasBookmark: false,
-      stage: 'saved',
-      submittedCV: 'Alex Morgan · Product Designer',
-      highlightLines: [
-        'Owned the shared design system used by four product squads',
-        'Ran research sessions with 30+ users to shape the onboarding flow',
-      ],
-      coverLetter:
-        'Dear Northstar Labs team, I am excited to apply for the Product Designer role...',
-      postedRange: 'HUF 950k–1.3M / month',
-      myExpectation: 'HUF 1.2M / month',
-      offerReceived: '—',
-    },
-    {
-      id: 'saved-2',
-      title: 'UX Designer',
-      company: 'Kinfolk',
-      companyInitial: 'K',
-      location: 'Budapest · Hybrid',
-      fit: 87,
-      isTopMatch: false,
-      hasBookmark: true,
-      stage: 'saved',
-      submittedCV: 'Alex Morgan · UX Designer',
-      highlightLines: ['Direct alignment with qualitative user research process'],
-      coverLetter: 'Dear Kinfolk team...',
-      postedRange: 'HUF 850k–1.1M / month',
-      myExpectation: 'HUF 1.0M / month',
-      offerReceived: '—',
-    },
-  ];
+    let isMounted = true;
 
-  // Applied cards (using real submissions if present, plus Figma pipeline items)
-  const appliedItems =
-    applications.length > 0
-      ? applications.map((app, idx) => ({
-          id: app.id || `app-${idx}`,
-          title: app.job?.title || 'Product Designer',
-          company: app.job?.company || 'Forma Systems',
-          companyInitial: (app.job?.company?.[0] || 'F').toUpperCase(),
-          location: app.job?.location
-            ? `${app.job.location} · Hybrid`
-            : 'Budapest · Hybrid',
-          appliedAgo: 'Applied recently',
-          fit: 84,
-          stage: 'applied',
-          method: app.method || 'manual',
-          submittedCV: 'Candidate Profile · Tailored Version',
-          highlightLines: [
-            'Prioritized matching experience and demonstrated competencies',
-          ],
-          coverLetter: 'Tailored application submitted via Matchwise.',
-          postedRange: 'HUF 900k–1.2M / month',
-          myExpectation: 'HUF 1.1M / month',
-          offerReceived: '—',
-        }))
-      : [
-          {
-            id: 'app-1',
-            title: 'Product Designer',
-            company: 'Forma Systems',
-            companyInitial: 'F',
-            location: 'Budapest · Hybrid',
-            appliedAgo: 'Applied 3 days ago',
-            fit: 84,
-            stage: 'applied',
-            method: 'manual',
-            submittedCV: 'Alex Morgan · Product Designer tailored for Forma',
-            highlightLines: [
-              'Owned component libraries and scalable design frameworks',
-            ],
-            coverLetter: 'Dear Forma Systems team...',
-            postedRange: 'HUF 900k–1.2M / month',
-            myExpectation: 'HUF 1.1M / month',
-            offerReceived: '—',
-          },
-          {
-            id: 'app-2',
-            title: 'UX Researcher',
-            company: 'Mosaic',
-            companyInitial: 'M',
-            location: 'Budapest · Hybrid',
-            appliedAgo: 'Applied 5 days ago',
-            fit: 81,
-            stage: 'applied',
-            method: 'manual',
-            submittedCV: 'Alex Morgan · UX Researcher tailored for Mosaic',
-            highlightLines: [
-              'Conducted extensive user interviews and usability benchmarking',
-            ],
-            coverLetter: 'Dear Mosaic team...',
-            postedRange: 'HUF 800k–1.0M / month',
-            myExpectation: 'HUF 950k / month',
-            offerReceived: '—',
-          },
-        ];
+    getTailorings(selectedItem.job.id, token)
+      .then(async (res) => {
+        if (!isMounted) return;
+        const versions = res?.tailorings || [];
+        if (versions.length > 0) {
+          const detailRes = await getTailoringDetail(versions[0].id, token).catch(() => null);
+          if (isMounted) {
+            setTailoringInfo(detailRes?.tailoring || null);
+            setDrawerLoading(false);
+          }
+        } else {
+          if (isMounted) {
+            setTailoringInfo(null);
+            setDrawerLoading(false);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setTailoringInfo(null);
+          setDrawerLoading(false);
+        }
+      });
 
-  const respondedItems = [
-    {
-      id: 'resp-1',
-      title: 'UX Designer',
-      company: 'Studio One',
-      companyInitial: 'S',
-      location: 'Budapest · Hybrid',
-      appliedAgo: 'Applied 8 days ago',
-      fit: 88,
-      stage: 'responded',
-      actionLabel: 'View recruiter note',
-      actionType: 'recruiter',
-      submittedCV: 'Alex Morgan · UX Designer tailored for Studio One',
-      highlightLines: ['Proven design systems leadership in high-paced sprint cadence'],
-      coverLetter: 'Dear Studio One team...',
-      postedRange: 'HUF 900k–1.2M / month',
-      myExpectation: 'HUF 1.15M / month',
-      offerReceived: '—',
-    },
-  ];
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedItem, token]);
 
-  const interviewedItems = [
-    {
-      id: 'int-1',
-      title: 'Product Designer',
-      company: 'Orbit',
-      companyInitial: 'O',
-      location: 'Budapest · Hybrid',
-      appliedAgo: 'Applied 12 days ago',
-      fit: 91,
-      stage: 'interviewed',
-      actionLabel: 'Prepare with AI / Schedule',
-      actionType: 'schedule',
-      statusTimeline: [
-        { label: 'Applied', date: 'Sep 12', done: true },
-        { label: 'Responded', date: 'Sep 14', done: true },
-        { label: 'Interview', date: 'Sep 18', current: true, badge: 'Upcoming' },
-      ],
-      submittedCV: 'Alex Morgan · Product Designer tailored for Orbit',
-      highlightLines: [
-        'Owned the shared design system used by four product squads',
-        'Ran research sessions with 30+ users to shape the onboarding flow',
-      ],
-      coverLetter:
-        "Dear Orbit hiring team, I'm excited to apply for the Product Designer role. Over five years at Acme Studio I have led UX for onboarding flows and maintained a design system used by four product squads, which maps directly to the...",
-      notes:
-        'Prepare a 10-minute portfolio walkthrough and ask about the design team structure.',
-      postedRange: 'HUF 900k–1.2M / month',
-      myExpectation: 'HUF 1.1M / month',
-      offerReceived: '—',
-    },
-  ];
+  const handleSelectItem = (item) => {
+    setTailoringInfo(null);
+    setDrawerLoading(Boolean(item?.job?.id));
+    setSelectedItem(item);
+  };
 
-  const offeredItems = [
-    {
-      id: 'off-1',
-      title: 'Product Designer',
-      company: 'Lumen Health',
-      companyInitial: 'L',
-      location: 'Budapest · Hybrid',
-      appliedAgo: 'Applied 21 days ago',
-      fit: 89,
-      stage: 'offered',
-      actionLabel: 'Review offer package',
-      actionType: 'offer',
-      submittedCV: 'Alex Morgan · Product Designer tailored for Lumen',
-      highlightLines: ['Healthcare compliance and responsive mobile experiences'],
-      coverLetter: 'Dear Lumen Health team...',
-      postedRange: 'HUF 1.0M–1.4M / month',
-      myExpectation: 'HUF 1.25M / month',
-      offerReceived: 'HUF 1.2M / month + bonus',
-    },
-  ];
+  const handleSaveNote = (jobId, text) => {
+    const updated = { ...personalNotes, [jobId]: text };
+    setPersonalNotes(updated);
+    try {
+      localStorage.setItem('matchwise_tracker_notes', JSON.stringify(updated));
+    } catch {
+      // safe fallback for restricted storage
+    }
+  };
 
-  const totalActive =
-    savedMatches.length +
-    appliedItems.length +
-    respondedItems.length +
-    interviewedItems.length +
-    offeredItems.length;
+  // Metrics derived honestly from real data
+  const totalActiveApplications = applications.length;
+
+  const formatDate = (isoString) => {
+    if (!isoString) return '—';
+    try {
+      return new Date(isoString).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return isoString;
+    }
+  };
 
   return (
     <div className="tracker-page">
@@ -244,133 +137,201 @@ export default function ApplicationTracker() {
           </Link>
         </div>
 
-        {/* 3 Metrics Cards */}
+        {/* Error banner */}
+        {error && (
+          <div
+            style={{
+              backgroundColor: '#fef3f2',
+              border: '1px solid #fee4e2',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              color: '#b42318',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <strong>Error loading pipeline:</strong> {error.message}
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                background: '#fff',
+                border: '1px solid #d0d5dd',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* 3 Metrics Cards (honest counts) */}
         <div className="tracker-metrics-row">
           <div className="tracker-metric-card">
             <div className="tracker-metric-label">ACTIVE APPLICATIONS</div>
-            <div className="tracker-metric-val">{totalActive}</div>
+            <div className="tracker-metric-val">{totalActiveApplications}</div>
           </div>
           <div className="tracker-metric-card">
             <div className="tracker-metric-label">RESPONSE RATE</div>
-            <div className="tracker-metric-val">68%</div>
+            <div className="tracker-metric-val">
+              {totalActiveApplications > 0 ? '0%' : '—'}
+            </div>
           </div>
           <div className="tracker-metric-card">
             <div className="tracker-metric-label">UPCOMING INTERVIEWS</div>
             <div className="tracker-metric-val-wrap">
-              <span className="tracker-metric-val">2</span>
-              <span className="tracker-metric-badge">Action required</span>
+              <span className="tracker-metric-val">0</span>
+              <span className="tracker-metric-badge" style={{ color: '#667085', backgroundColor: '#f2f4f7' }}>
+                Up to date
+              </span>
             </div>
           </div>
         </div>
 
         {/* 5 Column Kanban Pipeline */}
         <div className="tracker-board">
-          {/* Column 1: Saved / Top 10 matches */}
+          {/* Column 1: Saved / Top matches */}
           <div className="tracker-column">
             <div className="tracker-col-header">
-              <span className="tracker-col-title">Saved / Top 10 matches</span>
-              <span className="tracker-col-count">{savedMatches.length}</span>
+              <span className="tracker-col-title">Saved / Top matches</span>
+              <span className="tracker-col-count">{topMatches.length}</span>
             </div>
             <div className="tracker-cards-list">
-              {savedMatches.map((item) => (
-                <div
-                  key={item.id}
-                  className={`tracker-card ${selectedItem?.id === item.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="tracker-card-top">
-                    <div className="tracker-card-brand">
-                      <div className="tracker-company-logo">{item.companyInitial}</div>
-                      <div>
-                        <h3 className="tracker-card-role">{item.title}</h3>
-                      </div>
-                    </div>
-                    {item.isTopMatch && (
-                      <span className="tracker-top-match-badge">Top match</span>
-                    )}
-                    {item.hasBookmark && (
-                      <span style={{ fontSize: '14px', color: '#15241d' }}>🔖</span>
-                    )}
-                  </div>
-                  <div className="tracker-card-company">{item.company}</div>
-                  <div className="tracker-card-meta">{item.location}</div>
-                  <div className="tracker-card-bottom">
-                    <span className="tracker-fit-pill">{item.fit}% fit</span>
-                    <span className="tracker-card-dots">•••</span>
-                  </div>
+              {topMatches.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                  No top matches saved yet.
                 </div>
-              ))}
+              ) : (
+                topMatches.map((job, idx) => (
+                  <div
+                    key={job.id || idx}
+                    className="tracker-card"
+                    onClick={() =>
+                      handleSelectItem({
+                        job,
+                        status: 'saved',
+                        stageLabel: 'Saved Match',
+                        appliedAt: null,
+                      })
+                    }
+                  >
+                    <div className="tracker-card-top">
+                      <div className="tracker-card-brand">
+                        <div className="tracker-company-logo">
+                          {job.companyInitial || job.company?.[0]?.toUpperCase() || 'J'}
+                        </div>
+                        <div>
+                          <h3 className="tracker-card-role">{job.title}</h3>
+                        </div>
+                      </div>
+                      {idx === 0 && (
+                        <span className="tracker-top-match-badge">Top match</span>
+                      )}
+                    </div>
+                    <div className="tracker-card-company">{job.company}</div>
+                    <div className="tracker-card-meta">
+                      {job.location || 'Remote'} · {job.workType || 'Hybrid'}
+                    </div>
+                    <div className="tracker-card-bottom">
+                      <span className="tracker-fit-pill">
+                        {job.match?.score || job.fit || 90}% fit
+                      </span>
+                      <Link
+                        to={`/jobs/${job.id}/apply`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ fontSize: '12px', color: '#15241d', fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        Apply →
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Column 2: Applied */}
+          {/* Column 2: Applied (Real candidate applications) */}
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Applied</span>
-              <span className="tracker-col-count">{appliedItems.length}</span>
+              <span className="tracker-col-count">{applications.length}</span>
             </div>
             <div className="tracker-cards-list">
-              {appliedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`tracker-card ${selectedItem?.id === item.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="tracker-card-top">
-                    <div className="tracker-card-brand">
-                      <div className="tracker-company-logo">{item.companyInitial}</div>
-                      <h3 className="tracker-card-role">{item.title}</h3>
+              {isLoading ? (
+                <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                  Loading applications...
+                </div>
+              ) : applications.length === 0 ? (
+                <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                  No applications recorded yet.
+                </div>
+              ) : (
+                applications.map((app) => (
+                  <div
+                    key={app.id}
+                    className={`tracker-card ${selectedItem?.id === app.id ? 'is-selected' : ''}`}
+                    onClick={() =>
+                      handleSelectItem({
+                        ...app,
+                        stageLabel: 'Applied',
+                      })
+                    }
+                  >
+                    <div className="tracker-card-top">
+                      <div className="tracker-card-brand">
+                        <div className="tracker-company-logo">
+                          {app.job?.company?.[0]?.toUpperCase() || 'C'}
+                        </div>
+                        <h3 className="tracker-card-role">
+                          {app.job?.title || 'Job Application'}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="tracker-card-company">
+                      {app.job?.company || 'Company'}
+                    </div>
+                    <div className="tracker-card-meta">
+                      {app.job?.location || 'Remote'}
+                    </div>
+                    <div className="tracker-card-bottom">
+                      <span
+                        className="tracker-badge"
+                        style={{
+                          backgroundColor: app.method === 'auto' ? '#f4f3ff' : '#eff8ff',
+                          color: app.method === 'auto' ? '#5925dc' : '#175cd3',
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {app.method === 'auto' ? '⚡ Auto' : '📝 Manual'}
+                      </span>
+                      <span className="tracker-card-dots">•••</span>
                     </div>
                   </div>
-                  <div className="tracker-card-company">{item.company}</div>
-                  <div className="tracker-card-meta">
-                    {item.location} · {item.appliedAgo}
-                  </div>
-                  <div className="tracker-card-bottom">
-                    <span className="tracker-fit-pill">{item.fit}% fit</span>
-                    <span className="tracker-card-dots">•••</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          {/* Column 3: Responded */}
+          {/* Column 3: Responded (Backend status expansion pending) */}
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Responded</span>
-              <span className="tracker-col-count">{respondedItems.length}</span>
+              <span className="tracker-col-count">0</span>
             </div>
             <div className="tracker-cards-list">
-              {respondedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`tracker-card ${selectedItem?.id === item.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="tracker-card-top">
-                    <div className="tracker-card-brand">
-                      <div className="tracker-company-logo">{item.companyInitial}</div>
-                      <h3 className="tracker-card-role">{item.title}</h3>
-                    </div>
-                  </div>
-                  <div className="tracker-card-company">{item.company}</div>
-                  <div className="tracker-card-meta">
-                    {item.location} · {item.appliedAgo}
-                  </div>
-                  <div className="tracker-card-bottom">
-                    <span className="tracker-fit-pill">{item.fit}% fit</span>
-                  </div>
-                  {item.actionLabel && (
-                    <button
-                      type="button"
-                      className="tracker-card-action-btn tracker-btn-recruiter"
-                    >
-                      {item.actionLabel}
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                No employer responses logged yet.
+              </div>
             </div>
           </div>
 
@@ -378,38 +339,12 @@ export default function ApplicationTracker() {
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Interviewed</span>
-              <span className="tracker-col-count">{interviewedItems.length}</span>
+              <span className="tracker-col-count">0</span>
             </div>
             <div className="tracker-cards-list">
-              {interviewedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`tracker-card ${selectedItem?.id === item.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="tracker-card-top">
-                    <div className="tracker-card-brand">
-                      <div className="tracker-company-logo">{item.companyInitial}</div>
-                      <h3 className="tracker-card-role">{item.title}</h3>
-                    </div>
-                  </div>
-                  <div className="tracker-card-company">{item.company}</div>
-                  <div className="tracker-card-meta">
-                    {item.location} · {item.appliedAgo}
-                  </div>
-                  <div className="tracker-card-bottom">
-                    <span className="tracker-fit-pill">{item.fit}% fit</span>
-                  </div>
-                  {item.actionLabel && (
-                    <button
-                      type="button"
-                      className="tracker-card-action-btn tracker-btn-schedule"
-                    >
-                      {item.actionLabel}
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                No interviews scheduled.
+              </div>
             </div>
           </div>
 
@@ -417,44 +352,18 @@ export default function ApplicationTracker() {
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Offered</span>
-              <span className="tracker-col-count">{offeredItems.length}</span>
+              <span className="tracker-col-count">0</span>
             </div>
             <div className="tracker-cards-list">
-              {offeredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`tracker-card ${selectedItem?.id === item.id ? 'is-selected' : ''}`}
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="tracker-card-top">
-                    <div className="tracker-card-brand">
-                      <div className="tracker-company-logo">{item.companyInitial}</div>
-                      <h3 className="tracker-card-role">{item.title}</h3>
-                    </div>
-                  </div>
-                  <div className="tracker-card-company">{item.company}</div>
-                  <div className="tracker-card-meta">
-                    {item.location} · {item.appliedAgo}
-                  </div>
-                  <div className="tracker-card-bottom">
-                    <span className="tracker-fit-pill">{item.fit}% fit</span>
-                  </div>
-                  {item.actionLabel && (
-                    <button
-                      type="button"
-                      className="tracker-card-action-btn tracker-btn-offer"
-                    >
-                      {item.actionLabel}
-                    </button>
-                  )}
-                </div>
-              ))}
+              <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
+                No job offers received yet.
+              </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Side Drawer: Application Detail (Figma Screen 2) */}
+      {/* Side Drawer: Application Detail */}
       {selectedItem && (
         <div
           className="tracker-drawer-overlay"
@@ -468,24 +377,27 @@ export default function ApplicationTracker() {
             <div className="tracker-drawer-header">
               <div className="tracker-drawer-header-left">
                 <div className="tracker-drawer-logo">
-                  {selectedItem.companyInitial || 'O'}
+                  {selectedItem.job?.company?.[0]?.toUpperCase() || 'J'}
                 </div>
                 <div className="tracker-drawer-title-group">
-                  <h2>{selectedItem.title}</h2>
+                  <h2>{selectedItem.job?.title || 'Role Details'}</h2>
                   <div className="tracker-drawer-meta">
-                    {selectedItem.company} · {selectedItem.location}
+                    {selectedItem.job?.company} · {selectedItem.job?.location || 'Remote'}
                   </div>
                   <div className="tracker-drawer-badges">
                     <span className="tracker-drawer-badge badge-status">
-                      {selectedItem.stage.charAt(0).toUpperCase() +
-                        selectedItem.stage.slice(1)}
+                      {selectedItem.stageLabel || 'Applied'}
                     </span>
-                    <span className="tracker-drawer-badge badge-fit">
-                      {selectedItem.fit}% fit
-                    </span>
-                    <span className="tracker-drawer-badge badge-tailored">
-                      Applied with tailored AI CV
-                    </span>
+                    {selectedItem.method && (
+                      <span className="tracker-drawer-badge badge-tailored">
+                        {selectedItem.method === 'auto' ? 'Automatic Apply' : 'Manual Apply'}
+                      </span>
+                    )}
+                    {tailoringInfo && (
+                      <span className="tracker-drawer-badge badge-fit">
+                        Tailored with AI
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -509,25 +421,14 @@ export default function ApplicationTracker() {
                 <div className="tracker-timeline">
                   <div className="tracker-timeline-item">
                     <div className="tracker-timeline-left">
-                      <span className="timeline-dot" />
-                      <span className="timeline-label">Applied</span>
-                    </div>
-                    <span className="timeline-date">Sep 12</span>
-                  </div>
-                  <div className="tracker-timeline-item">
-                    <div className="tracker-timeline-left">
-                      <span className="timeline-dot" />
-                      <span className="timeline-label">Responded</span>
-                    </div>
-                    <span className="timeline-date">Sep 14</span>
-                  </div>
-                  <div className="tracker-timeline-item">
-                    <div className="tracker-timeline-left">
                       <span className="timeline-dot is-current" />
-                      <span className="timeline-label">Interview</span>
-                      <span className="timeline-upcoming-pill">Upcoming</span>
+                      <span className="timeline-label">
+                        {selectedItem.appliedAt ? 'Applied' : 'Saved'}
+                      </span>
                     </div>
-                    <span className="timeline-date">Sep 18</span>
+                    <span className="timeline-date">
+                      {formatDate(selectedItem.appliedAt)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -535,86 +436,89 @@ export default function ApplicationTracker() {
               {/* Submitted Resume Version */}
               <div className="tracker-drawer-section">
                 <div className="tracker-section-head">
-                  <h4 className="tracker-section-title">Submitted resume version</h4>
-                  <span className="tracker-link-action">Open full CV ↗</span>
+                  <h4 className="tracker-section-title">Tailored Documents</h4>
+                  {selectedItem.job?.id && (
+                    <Link
+                      to={`/jobs/${selectedItem.job.id}/tailor`}
+                      className="tracker-link-action"
+                    >
+                      Open Tailor Studio ↗
+                    </Link>
+                  )}
                 </div>
                 <div className="tracker-resume-box">
-                  <div className="tracker-resume-candidate">Alex Morgan</div>
-                  <div className="tracker-resume-sub">
-                    Product Designer · tailored for {selectedItem.company}
-                  </div>
-                  {selectedItem.highlightLines?.map((line, idx) => (
-                    <div key={idx} className="tracker-resume-highlight">
-                      {line}
+                  {drawerLoading ? (
+                    <div style={{ fontSize: '13px', color: '#667085' }}>
+                      Checking for saved documents...
                     </div>
-                  ))}
-                  <p className="tracker-resume-legend">
-                    <span style={{ color: '#027a48' }}>■</span> Highlighted lines
-                    are AI-tailored adjustments for this role
-                  </p>
+                  ) : tailoringInfo ? (
+                    <>
+                      <div className="tracker-resume-candidate">
+                        {tailoringInfo.tailoredProfile?.personal?.name || 'Tailored Resume'}
+                      </div>
+                      <div className="tracker-resume-sub">
+                        Tailored for {selectedItem.job?.company} ({tailoringInfo.tone || 'standard'} tone)
+                      </div>
+                      {tailoringInfo.highlightedSkills?.length > 0 && (
+                        <div className="tracker-resume-highlight">
+                          Matching skills prioritized: {tailoringInfo.highlightedSkills.join(', ')}
+                        </div>
+                      )}
+                      <p className="tracker-resume-legend">
+                        <span style={{ color: '#027a48' }}>■</span> Highlighted skills were prioritized by AI for this role
+                      </p>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '13px', color: '#667085', fontStyle: 'italic' }}>
+                      No tailored CV generated for this role yet.
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Generated Cover Letter */}
-              <div className="tracker-drawer-section">
-                <div className="tracker-section-head">
-                  <h4 className="tracker-section-title">Generated cover letter</h4>
-                  <span className="tracker-link-action">Read full letter ↗</span>
+              {tailoringInfo?.coverLetter && (
+                <div className="tracker-drawer-section">
+                  <div className="tracker-section-head">
+                    <h4 className="tracker-section-title">Generated cover letter</h4>
+                  </div>
+                  <div className="tracker-cover-letter-box">
+                    {tailoringInfo.coverLetter}
+                  </div>
                 </div>
-                <div className="tracker-cover-letter-box">
-                  {selectedItem.coverLetter}
-                </div>
-              </div>
+              )}
 
-              {/* Personal Notes */}
+              {/* Personal Notes (stored locally per job) */}
               <div className="tracker-drawer-section">
                 <div className="tracker-section-head">
                   <h4 className="tracker-section-title">Personal notes</h4>
-                  <span className="tracker-link-action">+ Add note</span>
                 </div>
                 <textarea
                   className="tracker-notes-textarea"
                   rows={3}
-                  defaultValue={
-                    selectedItem.notes ||
-                    'Prepare a 10-minute portfolio walkthrough and ask about the design team structure.'
-                  }
+                  placeholder="Add your notes about this opportunity, questions for interviewers, or timeline reminders..."
+                  value={personalNotes[selectedItem.job?.id] || ''}
+                  onChange={(e) => handleSaveNote(selectedItem.job?.id, e.target.value)}
                 />
               </div>
 
-              {/* Salary Tracking */}
-              <div className="tracker-drawer-section">
-                <div className="tracker-section-head">
-                  <h4 className="tracker-section-title">Salary tracking</h4>
+              {/* Employer / Job Link */}
+              {selectedItem.job?.url && (
+                <div className="tracker-drawer-section">
+                  <div className="tracker-section-head">
+                    <h4 className="tracker-section-title">Original Job Posting</h4>
+                  </div>
+                  <a
+                    href={selectedItem.job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tracker-browse-btn"
+                    style={{ fontSize: '13px', padding: '8px 16px', display: 'inline-block' }}
+                  >
+                    View on Employer Site ↗
+                  </a>
                 </div>
-                <div className="tracker-salary-grid">
-                  <div className="tracker-salary-field">
-                    <label>Posted range</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      defaultValue={selectedItem.postedRange || 'HUF 900k–1.2M / month'}
-                      readOnly
-                    />
-                  </div>
-                  <div className="tracker-salary-field">
-                    <label>My expectation</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      defaultValue={selectedItem.myExpectation || 'HUF 1.1M / month'}
-                    />
-                  </div>
-                  <div className="tracker-salary-field">
-                    <label>Offer received</label>
-                    <input
-                      type="text"
-                      className="tracker-salary-input"
-                      defaultValue={selectedItem.offerReceived || '—'}
-                    />
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Drawer Footer */}
@@ -622,21 +526,19 @@ export default function ApplicationTracker() {
               <button
                 type="button"
                 className="tracker-withdraw-btn"
-                onClick={() => {
-                  if (confirm('Are you sure you want to withdraw this application?')) {
-                    setSelectedItem(null);
-                  }
-                }}
+                onClick={() => setSelectedItem(null)}
               >
-                Withdraw application
+                Close
               </button>
-              <button
-                type="button"
-                className="tracker-prepare-btn"
-                onClick={() => alert('Opening interview preparation assistant...')}
-              >
-                Prepare with AI / Schedule
-              </button>
+              {selectedItem.job?.id && (
+                <Link
+                  to={`/jobs/${selectedItem.job.id}/tailor`}
+                  className="tracker-prepare-btn"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  Tailor with AI →
+                </Link>
+              )}
             </div>
           </div>
         </div>
