@@ -14,11 +14,22 @@ export default function AiRateLimitBanner({
   onRetry,
   onDismiss,
   customMessage,
-  retryAfterSeconds = 60,
+  retryAfterSeconds,
 }) {
-  const initialSeconds = error?.data?.retryAfter ? Number(error.data.retryAfter) : (retryAfterSeconds || 60);
-  const [countdown, setCountdown] = useState(initialSeconds);
-  const [canRetry, setCanRetry] = useState(initialSeconds <= 0);
+  const [countdown, setCountdown] = useState(() => {
+    if (typeof error?.data?.retryAfterSeconds === 'number') return error.data.retryAfterSeconds;
+    if (typeof error?.retryAfterSeconds === 'number') return error.retryAfterSeconds;
+    if (error?.data?.usage?.resetsAt || error?.usage?.resetsAt) {
+      const resetTime = Date.parse(error?.data?.usage?.resetsAt || error?.usage?.resetsAt);
+      if (!Number.isNaN(resetTime)) {
+        return Math.max(1, Math.ceil((resetTime - Date.now()) / 1000));
+      }
+    }
+    if (typeof error?.data?.retryAfter === 'number') return error.data.retryAfter;
+    if (typeof retryAfterSeconds === 'number') return retryAfterSeconds;
+    return 60;
+  });
+  const [canRetry, setCanRetry] = useState(() => countdown <= 0);
 
   useEffect(() => {
     if (countdown <= 0) return;

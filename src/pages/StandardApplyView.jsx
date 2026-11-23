@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getMatchDetail } from '../api/jobs';
 import { MOCK_JOBS } from '../mocks/jobs';
 import { getProfile } from '../api/profile';
+import { applyToJob } from '../api/applications';
+import { useAuth } from '../auth';
 import './StandardApplyView.css';
 
 export default function StandardApplyView() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { token } = useAuth();
 
   const [job, setJob] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isAppliedSuccess, setIsAppliedSuccess] = useState(false);
+  const [externalApplyUrl, setExternalApplyUrl] = useState(null);
 
   // Form states matching Figma 208:104
   const [workAuth, setWorkAuth] = useState('EU citizen - no sponsorship needed');
@@ -56,6 +63,42 @@ export default function StandardApplyView() {
       isMounted = false;
     };
   }, [id]);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!consentConfirmed) {
+      setError('Please agree that your profile and CV are shared with the employer.');
+      return;
+    }
+
+    const targetJobId = job?.id || id;
+    if (!targetJobId) return;
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const res = await applyToJob(targetJobId, token);
+      setIsAppliedSuccess(true);
+      const targetUrl = res?.applyUrl || job?.url;
+      if (targetUrl) {
+        setExternalApplyUrl(targetUrl);
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      if (err?.data?.error?.code === 'ALREADY_APPLIED') {
+        setError('You have already applied to this job.');
+      } else if (err?.data?.error?.code === 'JOB_CLOSED') {
+        setError('This job is no longer open for applications.');
+      } else if (err?.data?.error?.code === 'JOB_NOT_FOUND' || err?.status === 404) {
+        setError('Job not found or removed.');
+      } else {
+        setError(err?.message || 'Unable to record your application. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
 
 
@@ -322,30 +365,53 @@ export default function StandardApplyView() {
                 </li>
               </ul>
 
-              <div className="ready-coming-soon-notice" style={{
-                padding: '12px 14px',
-                borderRadius: '8px',
-                backgroundColor: '#f4f6f4',
-                border: '1px solid #d0d7d2',
-                fontSize: '13px',
-                color: '#55695f',
-                lineHeight: '1.4',
-                marginBottom: '12px',
-                textAlign: 'center'
-              }}>
-                <strong style={{ display: 'block', color: '#15241d', marginBottom: '4px' }}>Coming soon</strong>
-                Online application submission will be available once connected to the backend.
-              </div>
-
-              <button
-                type="button"
-                className="ready-submit-btn"
-                disabled={true}
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                title="Online application submission coming soon"
-              >
-                Submission coming soon
-              </button>
+              {isAppliedSuccess ? (
+                <div className="ready-success-box" style={{
+                  padding: '16px',
+                  borderRadius: '10px',
+                  backgroundColor: '#edfcf2',
+                  border: '1px solid #73e2a3',
+                  marginBottom: '16px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#087443', marginBottom: '6px' }}>
+                    ✓ Application Recorded
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#155e37', lineHeight: '1.4', margin: '0 0 12px 0' }}>
+                    Your application has been logged in Matchwise. Complete any remaining employer-specific steps on their site.
+                  </p>
+                  {externalApplyUrl && (
+                    <a
+                      href={externalApplyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ready-submit-btn"
+                      style={{ display: 'inline-block', textDecoration: 'none', marginBottom: '8px' }}
+                    >
+                      Open Employer Website ↗
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/matches')}
+                    className="ready-switch-link"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    Back to Job Feed
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="ready-submit-btn"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Recording application...' : 'Apply on employer website →'}
+                  </button>
+                </>
+              )}
 
               <div className="ready-switch-box">
                 <span className="ready-switch-title">Want a stronger application?</span>
