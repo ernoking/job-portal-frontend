@@ -3,7 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import AiRateLimitBanner from '../components/common/AiRateLimitBanner';
 import { getMatchDetail } from '../api/jobs';
-import { generateTailoring, downloadTailoredDoc, applyToJob } from '../api/applications';
+import { getProfile } from '../api/profile';
+import {
+  generateTailoring,
+  getTailorings,
+  getTailoringDetail,
+  downloadTailoredDoc,
+  applyToJob,
+} from '../api/applications';
 import { useAuth } from '../auth';
 import { MOCK_JOBS } from '../mocks/jobs';
 import './TailoredAiView.css';
@@ -14,12 +21,14 @@ export default function TailoredAiView() {
   const { token } = useAuth();
 
   const [job, setJob] = useState(null);
+  const [baseProfile, setBaseProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tailored'); // 'tailored' | 'original'
   const [tone, setTone] = useState('professional'); // 'professional' | 'friendly' | 'concise'
   const [aiError, setAiError] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tailoringData, setTailoringData] = useState(null);
+  const [savedVersions, setSavedVersions] = useState([]);
   const [isDownloadingResume, setIsDownloadingResume] = useState(false);
   const [isDownloadingLetter, setIsDownloadingLetter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,49 +38,47 @@ export default function TailoredAiView() {
 
   const [coverLetter, setCoverLetter] = useState('');
 
-  const handleGenerate = useCallback(async (selectedTone = tone) => {
-    const targetId = job?.id || id;
-    if (!targetId) return;
-
-    setIsGenerating(true);
-    setAiError(null);
-    try {
-      const res = await generateTailoring(targetId, { tone: selectedTone }, token);
-      if (res?.tailoring) {
-        setTailoringData(res.tailoring);
-        if (res.tailoring.coverLetter) {
-          setCoverLetter(res.tailoring.coverLetter);
-        }
-      }
-    } catch (err) {
-      if (err?.status === 429) {
-        setAiError(err);
-      } else {
-        setAiError({
-          status: err?.status || 500,
-          message: err?.message || 'Unable to tailor application documents right now. Please try again.',
-        });
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [job?.id, id, tone, token]);
-
+  // Loads base profile, job details, and any existing saved tailorings on mount
   useEffect(() => {
     let isMounted = true;
 
     const loadData = async () => {
-      let jobData = null;
-      if (id) {
-        jobData = await getMatchDetail(id).catch(() => null);
-      }
-      if (!jobData) {
-        jobData = MOCK_JOBS.find((j) => j.id === id) || MOCK_JOBS[0];
-      }
+      try {
+        let jobData = null;
+        if (id) {
+          jobData = await getMatchDetail(id).catch(() => null);
+        }
+        if (!jobData) {
+          jobData = MOCK_JOBS.find((j) => j.id === id) || MOCK_JOBS[0];
+        }
 
-      if (isMounted) {
-        setJob(jobData);
-        setIsLoading(false);
+        const profileData = await getProfile().catch(() => null);
+
+        let versions = [];
+        let latestTailoring = null;
+        if (id && token) {
+          const tailoringsRes = await getTailorings(id, token).catch(() => null);
+          if (tailoringsRes?.tailorings?.length > 0) {
+            versions = tailoringsRes.tailorings;
+            const latestId = versions[0].id;
+            const detailRes = await getTailoringDetail(latestId, token).catch(() => null);
+            latestTailoring = detailRes?.tailoring || null;
+          }
+        }
+
+        if (isMounted) {
+          setJob(jobData);
+          if (profileData) setBaseProfile(profileData);
+          setSavedVersions(versions);
+          if (latestTailoring) {
+            setTailoringData(latestTailoring);
+            if (latestTailoring.tone) setTone(latestTailoring.tone);
+            if (latestTailoring.coverLetter) setCoverLetter(latestTailoring.coverLetter);
+          }
+          setIsLoading(false);
+        }
+      } catch {
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -80,28 +87,80 @@ export default function TailoredAiView() {
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, token]);
+
+  const handleGenerate = useCallback(
+    async (selectedTone = tone) => {
+      const targetId = job?.id || id;
+      if (!targetId || isGenerating) return;
+
+      setIsGenerating(true);
+      setAiError(null);
+      try {
+        const res = await generateTailoring(targetId, { tone: selectedTone }, token);
+        if (res?.tailoring) {
+          setTailoringData(res.tailoring);
+          setSavedVersions((prev) => [res.tailoring, ...prev]);
+          if (res.tailoring.coverLetter) {
+            setCoverLetter(res.tailoring.coverLetter);
+          }
+        }
+      } catch (err) {
+        setAiError(err);
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [job?.id, id, tone, token, isGenerating]
+  );
 
   const handleToneChange = (newTone) => {
     setTone(newTone);
     handleGenerate(newTone);
   };
 
-  const handleDownload = async (type) => {
-    if (!tailoringData?.id) return;
+  const handleSelectVersion = async (versionId) => {
+    if (!versionId || versionId === tailoringData?.id) return;
     try {
-      if (type === 'resume') setIsDownloadingResume(true);
-      if (type === 'cover-letter') setIsDownloadingLetter(true);
+      const detailRes = await getTailoringDetail(versionId, token);
+      if (detailRes?.tailoring) {
+        setTailoringData(detailRes.tailoring);
+        if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
+        if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+      }
+    } catch (err) {
+      alert(`Unable to load version: ${err.message}`);
+    }
+  };
 
-      const blob = await downloadTailoredDoc(tailoringData.id, type, token);
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `${type === 'resume' ? 'tailored-cv' : 'tailored-cover-letter'}-${job?.company || 'job'}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
+  const handleDownload = async (type) => {
+    try {
+      if (type === 'resume') {
+        if (!tailoringData?.id) return;
+        setIsDownloadingResume(true);
+        const blob = await downloadTailoredDoc(tailoringData.id, type, token);
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `tailored-cv-${job?.company || 'job'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      } else if (type === 'cover-letter') {
+        setIsDownloadingLetter(true);
+        // Download the exact edited cover letter content reviewed by the user
+        const contentToDownload = coverLetter || tailoringData?.coverLetter || '';
+        const blob = new Blob([contentToDownload], { type: 'text/plain;charset=utf-8' });
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `cover-letter-${job?.company || 'job'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      }
     } catch (err) {
       alert(`Download failed: ${err.message}`);
     } finally {
@@ -137,12 +196,23 @@ export default function TailoredAiView() {
     }
   };
 
-
-
-
-
   const currentJob = job || MOCK_JOBS[0];
   const fitScore = currentJob.fit || 94;
+
+  // Active displayed profile: tailoredProfile if on 'tailored' tab and generated; else baseProfile
+  const profileToDisplay =
+    activeTab === 'tailored' && tailoringData?.tailoredProfile
+      ? tailoringData.tailoredProfile
+      : baseProfile || {
+          personal: { name: 'Candidate Profile', email: 'Upload and review CV first' },
+          skills: [],
+          experienceEducation: [],
+        };
+
+  const highlightedSkillsSet = new Set(tailoringData?.highlightedSkills || []);
+  const highlightedExpSet = new Set(
+    (tailoringData?.highlightedExperience || []).map((e) => `${e.role || ''}-${e.organization || ''}`)
+  );
 
   if (isLoading) {
     return (
@@ -176,24 +246,46 @@ export default function TailoredAiView() {
                 AI customises your CV profile highlights and crafts a role-tailored cover letter based on your real profile.
               </p>
             </div>
-            <button
-              type="button"
-              className="tailored-generate-btn"
-              onClick={() => handleGenerate(tone)}
-              disabled={isGenerating}
-              style={{
-                backgroundColor: '#15241d',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 18px',
-                fontWeight: 600,
-                cursor: isGenerating ? 'wait' : 'pointer',
-                opacity: isGenerating ? 0.7 : 1,
-              }}
-            >
-              {isGenerating ? 'Tailoring with AI...' : '✨ Generate Tailored Documents'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {savedVersions.length > 1 && (
+                <select
+                  value={tailoringData?.id || ''}
+                  onChange={(e) => handleSelectVersion(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #d0d5dd',
+                    fontSize: '13px',
+                    backgroundColor: '#fff',
+                  }}
+                  aria-label="Select saved version"
+                >
+                  {savedVersions.map((v, i) => (
+                    <option key={v.id} value={v.id}>
+                      Version {savedVersions.length - i} ({v.tone || 'standard'})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                className="tailored-generate-btn"
+                onClick={() => handleGenerate(tone)}
+                disabled={isGenerating}
+                style={{
+                  backgroundColor: '#15241d',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 18px',
+                  fontWeight: 600,
+                  cursor: isGenerating ? 'wait' : 'pointer',
+                  opacity: isGenerating ? 0.7 : 1,
+                }}
+              >
+                {isGenerating ? 'Tailoring with AI...' : '✨ Generate Tailored Documents'}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -221,11 +313,17 @@ export default function TailoredAiView() {
           <div className="tailored-col-card">
             <div className="tailored-card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 className="tailored-card-title">Tailored Resume</h3>
+                <h3 className="tailored-card-title">
+                  {activeTab === 'tailored' ? 'Tailored Resume' : 'Original Base Profile'}
+                </h3>
                 {tailoringData ? (
-                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>AI Tailored</span>
+                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>
+                    {activeTab === 'tailored' ? 'AI Tailored' : 'Base Version'}
+                  </span>
                 ) : (
-                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Draft</span>
+                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>
+                    Untailored Base
+                  </span>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -269,46 +367,107 @@ export default function TailoredAiView() {
             {/* Resume Preview Sheet */}
             <div className="tailored-resume-sheet">
               <div className="sheet-header">
-                <h4 className="sheet-name">Alex Morgan</h4>
-                <p className="sheet-meta">Product Designer · Budapest · alex.morgan@email.com</p>
+                <h4 className="sheet-name">{profileToDisplay?.personal?.name || 'Candidate Profile'}</h4>
+                <p className="sheet-meta">
+                  {[profileToDisplay?.personal?.email, profileToDisplay?.personal?.phone, profileToDisplay?.personal?.location]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
               </div>
 
-              <div className="sheet-section">
-                <span className="sheet-section-title">SKILLS</span>
-                <div className="sheet-highlight-box">
-                  Figma & prototyping · User research · Design systems · Usability testing
+              {profileToDisplay?.skills?.length > 0 ? (
+                <div className="sheet-section">
+                  <span className="sheet-section-title">SKILLS</span>
+                  <div className="sheet-highlight-box" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {profileToDisplay.skills.map((skill, idx) => {
+                      const isHighlighted = activeTab === 'tailored' && highlightedSkillsSet.has(skill);
+                      return (
+                        <span
+                          key={idx}
+                          style={{
+                            fontWeight: isHighlighted ? 700 : 400,
+                            color: isHighlighted ? '#027a48' : '#15241d',
+                            backgroundColor: isHighlighted ? '#edfcf2' : 'transparent',
+                            padding: isHighlighted ? '2px 6px' : 0,
+                            borderRadius: '4px',
+                          }}
+                        >
+                          {skill}{idx < profileToDisplay.skills.length - 1 ? ' ·' : ''}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="sheet-section" style={{ color: '#667085', fontSize: '13px', fontStyle: 'italic' }}>
+                  No skills recorded in profile yet.
+                </div>
+              )}
 
-              <div className="sheet-section">
-                <span className="sheet-section-title">EXPERIENCE</span>
-                <span className="sheet-sub-title">Product Designer, Acme Studio · 2019–2024</span>
-                <div className="sheet-highlight-box">
-                  Owned the shared design system used by four product squads, aligned with Northstar Labs’ design system ownership.
+              {profileToDisplay?.experienceEducation?.length > 0 ? (
+                <div className="sheet-section">
+                  <span className="sheet-section-title">EXPERIENCE & EDUCATION</span>
+                  {profileToDisplay.experienceEducation.map((item, idx) => {
+                    const isHighlighted =
+                      activeTab === 'tailored' &&
+                      highlightedExpSet.has(`${item.role || ''}-${item.organization || ''}`);
+                    return (
+                      <div
+                        key={idx}
+                        className="sheet-highlight-box"
+                        style={{
+                          marginTop: idx > 0 ? 8 : 0,
+                          backgroundColor: isHighlighted ? '#edfcf2' : '#ffffff',
+                          border: isHighlighted ? '1px solid #73e2a3' : '1px solid #eaecf0',
+                          padding: '10px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        <span className="sheet-sub-title" style={{ display: 'block', fontWeight: 600 }}>
+                          {[item.role, item.organization, item.period].filter(Boolean).join(' · ')}
+                        </span>
+                        {item.description && (
+                          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#55695f' }}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="sheet-highlight-box" style={{ marginTop: 8 }}>
-                  Ran research sessions with 30+ users to shape the onboarding flow and discovery workflow.
+              ) : (
+                <div className="sheet-section" style={{ color: '#667085', fontSize: '13px', fontStyle: 'italic' }}>
+                  No experience or education recorded in profile yet.
                 </div>
-              </div>
-
-              <div className="sheet-section">
-                <span className="sheet-section-title">EDUCATION</span>
-                <span className="sheet-sub-title">MSc Interaction Design, MOME · 2021</span>
-              </div>
+              )}
             </div>
 
-            <p className="tailored-resume-legend">
-              <span className="legend-dot" /> Highlighted lines were adjusted by AI for this role
-            </p>
+            {activeTab === 'tailored' && tailoringData && (
+              <>
+                <p className="tailored-resume-legend">
+                  <span className="legend-dot" /> Highlighted skills and experiences were prioritized by AI for this role
+                </p>
 
-            <div className="tailored-changes-box">
-              <h5 className="changes-box-title">What changed</h5>
-              <ul className="changes-list">
-                <li className="changes-item">✓ Reordered skills to lead with Figma & prototyping</li>
-                <li className="changes-item">✓ Linked design-system work to the team’s core workflow</li>
-                <li className="changes-item">✓ Emphasised user research with 30+ participants</li>
-              </ul>
-            </div>
+                <div className="tailored-changes-box">
+                  <h5 className="changes-box-title">AI Fact Alignment</h5>
+                  <ul className="changes-list">
+                    {tailoringData.highlightedSkills?.length > 0 && (
+                      <li className="changes-item">
+                        ✓ Prioritized matching skills: {tailoringData.highlightedSkills.join(', ')}
+                      </li>
+                    )}
+                    {tailoringData.highlightedExperience?.length > 0 && (
+                      <li className="changes-item">
+                        ✓ Highlighted relevant background: {tailoringData.highlightedExperience.map((e) => e.role || e.organization).join(', ')}
+                      </li>
+                    )}
+                    <li className="changes-item">
+                      ✓ Ranked using strict fact verification against your uploaded profile
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right Column: Cover Letter */}
@@ -316,7 +475,7 @@ export default function TailoredAiView() {
             {aiError && (
               <AiRateLimitBanner
                 error={aiError}
-                onRetry={() => {}}
+                onRetry={() => handleGenerate(tone)}
                 onDismiss={() => setAiError(null)}
               />
             )}
@@ -325,13 +484,17 @@ export default function TailoredAiView() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 className="tailored-card-title">Cover letter</h3>
                 {tailoringData ? (
-                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>AI Tailored</span>
+                  <span style={{ fontSize: '11px', color: '#027a48', backgroundColor: '#ecfdf3', padding: '1px 6px', borderRadius: '4px' }}>
+                    AI Generated
+                  </span>
                 ) : (
-                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>Draft</span>
+                  <span style={{ fontSize: '11px', color: '#667085', backgroundColor: '#f2f4f7', padding: '1px 6px', borderRadius: '4px' }}>
+                    Empty (Generate to preview)
+                  </span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                {tailoringData?.id && (
+                {coverLetter && (
                   <button
                     type="button"
                     onClick={() => handleDownload('cover-letter')}
@@ -371,6 +534,7 @@ export default function TailoredAiView() {
                     type="button"
                     className={`tone-chip ${tone === t.toLowerCase() ? 'is-selected' : ''}`}
                     onClick={() => handleToneChange(t.toLowerCase())}
+                    disabled={isGenerating}
                   >
                     {t}
                   </button>
@@ -383,13 +547,10 @@ export default function TailoredAiView() {
               className="tailored-letter-textarea"
               rows={14}
               value={coverLetter}
+              placeholder="Click 'Generate Tailored Documents' above to generate a grounded cover letter tailored to this role."
               onChange={(e) => setCoverLetter(e.target.value)}
+              disabled={isGenerating}
             />
-
-            <div className="tailored-coverage-banner">
-              <span className="coverage-check">✓</span>
-              <span>Your tailored application covers 9 of 10 key requirements for this role.</span>
-            </div>
           </div>
         </div>
 

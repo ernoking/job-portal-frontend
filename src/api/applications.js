@@ -58,10 +58,25 @@ export async function generateTailoring(jobId, options = {}, token) {
  *
  * @param {string} jobId
  * @param {string} [token]
- * @returns {Promise<{ tailorings: Array<object>, total: number, limit: number }>}
+ * @returns {Promise<{ tailorings: Array<object>, total?: number, limit: number }>}
  */
 export async function getTailorings(jobId, token) {
   return await request(`/api/jobs/${encodeURIComponent(jobId)}/tailorings`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
+/**
+ * Retrieves a full saved tailoring by ID.
+ * Contract: GET /api/tailorings/:id
+ *
+ * @param {string} tailoringId
+ * @param {string} [token]
+ * @returns {Promise<{ tailoring: object }>}
+ */
+export async function getTailoringDetail(tailoringId, token) {
+  return await request(`/api/tailorings/${encodeURIComponent(tailoringId)}`, {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });

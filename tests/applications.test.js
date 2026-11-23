@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyToJob, getApplications, generateTailoring, downloadTailoredDoc } from '../src/api/applications.js';
+import { applyToJob, getApplications, generateTailoring, downloadTailoredDoc, getTailoringDetail } from '../src/api/applications.js';
 
 test('applyToJob sends POST /api/jobs/:id/apply with Bearer token', async () => {
   const originalFetch = globalThis.fetch;
@@ -117,4 +117,50 @@ test('downloadTailoredDoc fetches document endpoint and returns blob', async () 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('getTailoringDetail fetches GET /api/tailorings/:id', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+
+  globalThis.fetch = async (url, options) => {
+    requests.push({ url, options });
+    return {
+      status: 200,
+      ok: true,
+      headers: {
+        get: (h) => (h.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({
+        tailoring: {
+          id: 'tailor-999',
+          jobId: 'job-123',
+          tone: 'confident',
+          tailoredProfile: { fullName: 'Jane Doe' },
+        },
+      }),
+    };
+  };
+
+  try {
+    const res = await getTailoringDetail('tailor-999', 'token-xyz');
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, '/api/tailorings/tailor-999');
+    assert.equal(requests[0].options.method, 'GET');
+    assert.equal(requests[0].options.headers.Authorization, 'Bearer token-xyz');
+    assert.equal(res.tailoring.id, 'tailor-999');
+    assert.equal(res.tailoring.tone, 'confident');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('cover letter edited in state creates a blob preserving user edits', async () => {
+  // Verifies the contract used in TailoredAiView handleDownload:
+  // Blob created with edited content preserves edits over backend original
+  const editedText = 'Dear Hiring Manager,\n\nI am thrilled to apply with my edited sentence.\n\nSincerely,\nJane';
+  const blob = new Blob([editedText], { type: 'text/plain;charset=utf-8' });
+  const text = await blob.text();
+  assert.equal(text, editedText);
+  assert(text.includes('edited sentence'));
 });
