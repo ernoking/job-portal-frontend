@@ -422,34 +422,61 @@ export default function ApplicationTracker() {
                   <h4 className="tracker-section-title">Status timeline</h4>
                 </div>
                 <div className="tracker-timeline">
+                  {/* Applied - active/current real status (green dot with black border) */}
                   <div className="tracker-timeline-item">
                     <div className="tracker-timeline-left">
-                      <span className="timeline-dot is-completed" />
+                      <span
+                        className={`timeline-dot ${
+                          selectedItem.status === 'responded' ||
+                          selectedItem.status === 'interview' ||
+                          selectedItem.status === 'offered'
+                            ? 'is-completed'
+                            : 'is-active'
+                        }`}
+                      />
                       <span className="timeline-label">Applied</span>
                     </div>
                     <span className="timeline-date">
                       {formatDate(selectedItem.appliedAt || selectedItem.createdAt)}
                     </span>
                   </div>
-                  <div className="tracker-timeline-item">
-                    <div className="tracker-timeline-left">
-                      <span className="timeline-dot is-completed" />
-                      <span className="timeline-label">Responded</span>
+
+                  {/* Responded - when not yet reached, hollow circle; becomes green if active */}
+                  {selectedItem.respondedAt || selectedItem.status === 'responded' ? (
+                    <div className="tracker-timeline-item">
+                      <div className="tracker-timeline-left">
+                        <span
+                          className={`timeline-dot ${
+                            selectedItem.status === 'interview' || selectedItem.status === 'offered'
+                              ? 'is-completed'
+                              : 'is-active'
+                          }`}
+                        />
+                        <span className="timeline-label">Responded</span>
+                      </div>
+                      <span className="timeline-date">
+                        {formatDate(selectedItem.respondedAt)}
+                      </span>
                     </div>
-                    <span className="timeline-date">
-                      {formatDate(selectedItem.respondedAt || selectedItem.appliedAt || selectedItem.createdAt)}
-                    </span>
-                  </div>
-                  <div className="tracker-timeline-item">
-                    <div className="tracker-timeline-left">
-                      <span className="timeline-dot is-active" />
-                      <span className="timeline-label">Interview</span>
-                      <span className="timeline-upcoming-pill">Upcoming</span>
+                  ) : null}
+
+                  {/* Interview - when reached */}
+                  {selectedItem.interviewAt || selectedItem.status === 'interview' ? (
+                    <div className="tracker-timeline-item">
+                      <div className="tracker-timeline-left">
+                        <span
+                          className={`timeline-dot ${
+                            selectedItem.status === 'offered' ? 'is-completed' : 'is-active'
+                          }`}
+                        />
+                        <span className="timeline-label">Interview</span>
+                        <span className="timeline-upcoming-pill">Upcoming</span>
+                      </div>
+                      <span className="timeline-date">
+                        {formatDate(selectedItem.interviewAt)}
+                      </span>
                     </div>
-                    <span className="timeline-date">
-                      {formatDate(selectedItem.interviewAt || selectedItem.appliedAt || selectedItem.createdAt)}
-                    </span>
-                  </div>
+                  ) : null}
                 </div>
               </div>
 

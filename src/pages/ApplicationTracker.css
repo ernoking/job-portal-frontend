@@ -510,13 +510,13 @@
   box-sizing: border-box;
 }
 
-/* Gray open circle for unreached/completed past steps */
+/* White with black/dark border for past completed stages */
 .timeline-dot.is-completed {
-  border: 2px solid #5a665e;
-  background-color: transparent;
+  border: 2px solid #15241d;
+  background-color: #ffffff;
 }
 
-/* Glowing green dot with dark green outline for active/current step */
+/* Glowing green dot with black border for active/current stage */
 .timeline-dot.is-active,
 .timeline-dot.is-current {
   background-color: #c6f851;
