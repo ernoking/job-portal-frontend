@@ -11,6 +11,7 @@ import {
   downloadTailoredDoc,
   applyToJob,
 } from '../api/applications';
+import { createExclusiveTask } from '../utils/exclusiveTask.js';
 import { useAuth } from '../auth';
 import { MOCK_JOBS } from '../mocks/jobs';
 import './TailoredAiView.css';
@@ -39,34 +40,38 @@ export default function TailoredAiView() {
   const [externalApplyUrl, setExternalApplyUrl] = useState(null);
 
   const [coverLetter, setCoverLetter] = useState('');
+  const [runDocumentTask] = useState(createExclusiveTask);
+  const documentsBusy = isGenerating || isRetryingHistory;
 
   // Loads base profile, job details, and any existing saved tailorings
   const loadSavedHistory = useCallback(
     async (targetJobId, authToken) => {
       if (!targetJobId || !authToken) return;
-      setHistoryError(null);
-      setIsRetryingHistory(true);
-      try {
-        const tailoringsRes = await getTailorings(targetJobId, authToken);
-        const versions = tailoringsRes?.tailorings || [];
-        setSavedVersions(versions);
+      return runDocumentTask(async () => {
+        setHistoryError(null);
+        setIsRetryingHistory(true);
+        try {
+          const tailoringsRes = await getTailorings(targetJobId, authToken);
+          const versions = tailoringsRes?.tailorings || [];
+          setSavedVersions(versions);
 
-        if (versions.length > 0) {
-          const latestId = versions[0].id;
-          const detailRes = await getTailoringDetail(latestId, authToken);
-          if (detailRes?.tailoring) {
-            setTailoringData(detailRes.tailoring);
-            if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
-            if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+          if (versions.length > 0) {
+            const latestId = versions[0].id;
+            const detailRes = await getTailoringDetail(latestId, authToken);
+            if (detailRes?.tailoring) {
+              setTailoringData(detailRes.tailoring);
+              if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
+              if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+            }
           }
+        } catch (err) {
+          setHistoryError(err || new Error('Failed to load saved tailoring documents'));
+        } finally {
+          setIsRetryingHistory(false);
         }
-      } catch (err) {
-        setHistoryError(err || new Error('Failed to load saved tailoring documents'));
-      } finally {
-        setIsRetryingHistory(false);
-      }
+      });
     },
-    []
+    [runDocumentTask]
   );
 
   useEffect(() => {
@@ -108,45 +113,52 @@ export default function TailoredAiView() {
   const handleGenerate = useCallback(
     async (selectedTone = tone) => {
       const targetId = job?.id || id;
-      if (!targetId || isGenerating) return;
+      if (!targetId) return;
 
-      setIsGenerating(true);
-      setAiError(null);
-      try {
-        const res = await generateTailoring(targetId, { tone: selectedTone }, token);
-        if (res?.tailoring) {
-          setTailoringData(res.tailoring);
-          setSavedVersions((prev) => [res.tailoring, ...prev]);
-          if (res.tailoring.coverLetter) {
-            setCoverLetter(res.tailoring.coverLetter);
+      return runDocumentTask(async () => {
+        setTone(selectedTone);
+        setIsGenerating(true);
+        setAiError(null);
+        try {
+          const res = await generateTailoring(targetId, { tone: selectedTone }, token);
+          if (res?.tailoring) {
+            setTailoringData(res.tailoring);
+            setSavedVersions((prev) => [res.tailoring, ...prev]);
+            if (res.tailoring.coverLetter) {
+              setCoverLetter(res.tailoring.coverLetter);
+            }
           }
+        } catch (err) {
+          setAiError(err);
+        } finally {
+          setIsGenerating(false);
         }
-      } catch (err) {
-        setAiError(err);
-      } finally {
-        setIsGenerating(false);
-      }
+      });
     },
-    [job?.id, id, tone, token, isGenerating]
+    [job?.id, id, tone, token, runDocumentTask]
   );
 
   const handleToneChange = (newTone) => {
-    setTone(newTone);
     handleGenerate(newTone);
   };
 
   const handleSelectVersion = async (versionId) => {
     if (!versionId || versionId === tailoringData?.id) return;
-    try {
-      const detailRes = await getTailoringDetail(versionId, token);
-      if (detailRes?.tailoring) {
-        setTailoringData(detailRes.tailoring);
-        if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
-        if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+    return runDocumentTask(async () => {
+      setIsRetryingHistory(true);
+      try {
+        const detailRes = await getTailoringDetail(versionId, token);
+        if (detailRes?.tailoring) {
+          setTailoringData(detailRes.tailoring);
+          if (detailRes.tailoring.tone) setTone(detailRes.tailoring.tone);
+          if (detailRes.tailoring.coverLetter) setCoverLetter(detailRes.tailoring.coverLetter);
+        }
+      } catch (err) {
+        alert(`Unable to load version: ${err.message}`);
+      } finally {
+        setIsRetryingHistory(false);
       }
-    } catch (err) {
-      alert(`Unable to load version: ${err.message}`);
-    }
+    });
   };
 
   const handleDownload = async (type) => {
@@ -279,7 +291,7 @@ export default function TailoredAiView() {
             <button
               type="button"
               onClick={() => loadSavedHistory(id, token)}
-              disabled={isRetryingHistory}
+              disabled={documentsBusy}
               style={{
                 backgroundColor: '#ffffff',
                 border: '1px solid #d0d5dd',
@@ -308,6 +320,7 @@ export default function TailoredAiView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {savedVersions.length > 1 && (
                 <select
+                  disabled={documentsBusy}
                   value={tailoringData?.id || ''}
                   onChange={(e) => handleSelectVersion(e.target.value)}
                   style={{
@@ -330,7 +343,7 @@ export default function TailoredAiView() {
                 type="button"
                 className="tailored-generate-btn"
                 onClick={() => handleGenerate(tone)}
-                disabled={isGenerating}
+                disabled={documentsBusy}
                 style={{
                   backgroundColor: '#15241d',
                   color: '#ffffff',
@@ -574,7 +587,7 @@ export default function TailoredAiView() {
                 <button
                   type="button"
                   className="tailored-regenerate-link"
-                  disabled={isGenerating}
+                  disabled={documentsBusy}
                   onClick={() => handleGenerate(tone)}
                   style={{ cursor: isGenerating ? 'wait' : 'pointer' }}
                 >
@@ -593,7 +606,7 @@ export default function TailoredAiView() {
                     type="button"
                     className={`tone-chip ${tone === t.toLowerCase() ? 'is-selected' : ''}`}
                     onClick={() => handleToneChange(t.toLowerCase())}
-                    disabled={isGenerating}
+                    disabled={documentsBusy}
                   >
                     {t}
                   </button>
@@ -608,7 +621,7 @@ export default function TailoredAiView() {
               value={coverLetter}
               placeholder="Click 'Generate Tailored Documents' above to generate a grounded cover letter tailored to this role."
               onChange={(e) => setCoverLetter(e.target.value)}
-              disabled={isGenerating}
+              disabled={documentsBusy}
             />
           </div>
         </div>
