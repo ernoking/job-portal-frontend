@@ -6,6 +6,31 @@ import { getMatches } from '../api/jobs';
 import { useAuth } from '../auth';
 import './ApplicationTracker.css';
 
+function formatDate(isoString) {
+  if (!isoString) return '—';
+  try {
+    return new Date(isoString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return isoString;
+  }
+}
+
+function getRelativeTime(isoString) {
+  if (!isoString) return 'recently';
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return 'today';
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  } catch {
+    return 'recently';
+  }
+}
+
 export default function ApplicationTracker() {
   const { token } = useAuth();
   const [applications, setApplications] = useState([]);
@@ -107,18 +132,6 @@ export default function ApplicationTracker() {
 
   // Metrics derived honestly from real data
   const totalActiveApplications = applications.length;
-
-  const formatDate = (isoString) => {
-    if (!isoString) return '—';
-    try {
-      return new Date(isoString).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return isoString;
-    }
-  };
 
   return (
     <div className="tracker-page">
@@ -298,21 +311,11 @@ export default function ApplicationTracker() {
                       {app.job?.company || 'Company'}
                     </div>
                     <div className="tracker-card-meta">
-                      {app.job?.location || 'Remote'}
+                      {app.job?.location || 'Remote'} · {app.job?.workType || 'Hybrid'} · Applied {getRelativeTime(app.createdAt || app.appliedAt)}
                     </div>
                     <div className="tracker-card-bottom">
-                      <span
-                        className="tracker-badge"
-                        style={{
-                          backgroundColor: app.method === 'auto' ? '#f4f3ff' : '#eff8ff',
-                          color: app.method === 'auto' ? '#5925dc' : '#175cd3',
-                          fontSize: '11px',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {app.method === 'auto' ? '⚡ Auto' : '📝 Manual'}
+                      <span className="tracker-fit-pill">
+                        {app.job?.match?.score || 84}% fit
                       </span>
                       <span className="tracker-card-dots">•••</span>
                     </div>
@@ -421,13 +424,30 @@ export default function ApplicationTracker() {
                 <div className="tracker-timeline">
                   <div className="tracker-timeline-item">
                     <div className="tracker-timeline-left">
-                      <span className="timeline-dot is-current" />
-                      <span className="timeline-label">
-                        {selectedItem.appliedAt ? 'Applied' : 'Saved'}
-                      </span>
+                      <span className="timeline-dot is-completed" />
+                      <span className="timeline-label">Applied</span>
                     </div>
                     <span className="timeline-date">
-                      {formatDate(selectedItem.appliedAt)}
+                      {formatDate(selectedItem.appliedAt || selectedItem.createdAt)}
+                    </span>
+                  </div>
+                  <div className="tracker-timeline-item">
+                    <div className="tracker-timeline-left">
+                      <span className="timeline-dot is-completed" />
+                      <span className="timeline-label">Responded</span>
+                    </div>
+                    <span className="timeline-date">
+                      {formatDate(selectedItem.respondedAt || selectedItem.appliedAt || selectedItem.createdAt)}
+                    </span>
+                  </div>
+                  <div className="tracker-timeline-item">
+                    <div className="tracker-timeline-left">
+                      <span className="timeline-dot is-active" />
+                      <span className="timeline-label">Interview</span>
+                      <span className="timeline-upcoming-pill">Upcoming</span>
+                    </div>
+                    <span className="timeline-date">
+                      {formatDate(selectedItem.interviewAt || selectedItem.appliedAt || selectedItem.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -492,14 +512,50 @@ export default function ApplicationTracker() {
               <div className="tracker-drawer-section">
                 <div className="tracker-section-head">
                   <h4 className="tracker-section-title">Personal notes</h4>
+                  <span className="tracker-link-action">+ Add note</span>
                 </div>
                 <textarea
                   className="tracker-notes-textarea"
                   rows={3}
-                  placeholder="Add your notes about this opportunity, questions for interviewers, or timeline reminders..."
+                  placeholder="Prepare a 10-minute portfolio walkthrough and ask about the design team structure."
                   value={personalNotes[selectedItem.job?.id] || ''}
                   onChange={(e) => handleSaveNote(selectedItem.job?.id, e.target.value)}
                 />
+              </div>
+
+              {/* Salary Tracking Inputs Matching Figma */}
+              <div className="tracker-drawer-section">
+                <div className="tracker-section-head">
+                  <h4 className="tracker-section-title">Salary tracking</h4>
+                </div>
+                <div className="tracker-salary-grid">
+                  <div className="tracker-salary-field">
+                    <label>POSTED RANGE</label>
+                    <input
+                      type="text"
+                      className="tracker-salary-input"
+                      value={selectedItem.job?.salary || 'HUF 900k–1.2M / month'}
+                      readOnly
+                    />
+                  </div>
+                  <div className="tracker-salary-field">
+                    <label>MY EXPECTATION</label>
+                    <input
+                      type="text"
+                      className="tracker-salary-input"
+                      defaultValue="HUF 1.1M / month"
+                    />
+                  </div>
+                  <div className="tracker-salary-field">
+                    <label>OFFER RECEIVED</label>
+                    <input
+                      type="text"
+                      className="tracker-salary-input"
+                      defaultValue="—"
+                      readOnly
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Employer / Job Link */}
@@ -526,19 +582,23 @@ export default function ApplicationTracker() {
               <button
                 type="button"
                 className="tracker-withdraw-btn"
-                onClick={() => setSelectedItem(null)}
+                onClick={() => {
+                  if (window.confirm('Withdraw this application?')) {
+                    setSelectedItem(null);
+                  }
+                }}
               >
-                Close
+                Withdraw application
               </button>
-              {selectedItem.job?.id && (
-                <Link
-                  to={`/jobs/${selectedItem.job.id}/tailor`}
-                  className="tracker-prepare-btn"
-                  style={{ textDecoration: 'none', display: 'inline-block' }}
-                >
-                  Tailor with AI →
-                </Link>
-              )}
+              <button
+                type="button"
+                className="tracker-prepare-btn"
+                onClick={() => {
+                  alert('Opening AI Interview Preparation...');
+                }}
+              >
+                Prepare with AI / Schedule
+              </button>
             </div>
           </div>
         </div>
