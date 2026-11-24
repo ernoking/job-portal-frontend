@@ -38,18 +38,9 @@ export default function ApplicationTracker() {
   const [savedJobs, setSavedJobs] = useState(() => getSavedJobs(userId));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const [prevUserId, setPrevUserId] = useState(userId);
-  if (userId !== prevUserId) {
-    setPrevUserId(userId);
-    setSavedJobs(getSavedJobs(userId));
-    try {
-      const data = userId ? JSON.parse(localStorage.getItem(`matchwise_tracker_notes_${userId}`) || '{}') : {};
-      setPersonalNotes(data);
-    } catch {
-      setPersonalNotes({});
-    }
-  }
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [retryCount, setRetryCount] = useState(0);
+  const [dateError, setDateError] = useState('');
 
   // Sync saved jobs if updated from other tabs/modals
   useEffect(() => {
@@ -76,27 +67,47 @@ export default function ApplicationTracker() {
     }
   });
 
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (userId !== prevUserId) {
+    setPrevUserId(userId);
+    setSavedJobs(getSavedJobs(userId));
+    try {
+      const data = userId ? JSON.parse(localStorage.getItem(`matchwise_tracker_notes_${userId}`) || '{}') : {};
+      setPersonalNotes(data);
+    } catch {
+      setPersonalNotes({});
+    }
+  }
+
   // Load real applications for candidate
   useEffect(() => {
     let isMounted = true;
 
-    getApplications({}, token)
-      .then((res) => {
-        if (!isMounted) return;
-        setApplications(res?.applications || []);
-        setError(null);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        setError(err || new Error('Failed to load applications.'));
-        setIsLoading(false);
-      });
+    function loadHistory() {
+      setIsLoading(true);
+      setError(null);
+      setApplications([]);
+      setSelectedItem(null);
+      if (!token) { setIsLoading(false); return; }
+      getApplications(dateRange, token)
+        .then((res) => {
+          if (!isMounted) return;
+          setApplications(res?.applications || []);
+          setError(null);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          if (!isMounted) return;
+          setError(err || new Error('Failed to load applications.'));
+          setIsLoading(false);
+        });
+    }
+    loadHistory();
 
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, dateRange, retryCount]);
 
   // Load tailored CV/cover letter details when an application item is selected in drawer
   useEffect(() => {
@@ -171,6 +182,31 @@ export default function ApplicationTracker() {
           </Link>
         </div>
 
+        <form className="tracker-date-filters" onSubmit={(event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          const dateInputs = { from: values.get('from') || '', to: values.get('to') || '' };
+          if (dateInputs.from && dateInputs.to && dateInputs.from > dateInputs.to) {
+            setDateError('Start date must be on or before end date.');
+            return;
+          }
+          setDateError('');
+          setDateRange({ ...dateInputs });
+        }}>
+          <label>From (UTC)
+            <input type="date" name="from" />
+          </label>
+          <label>To (UTC, inclusive)
+            <input type="date" name="to" />
+          </label>
+          <button type="submit">Filter history</button>
+          <button type="reset" onClick={() => {
+            setDateRange({ from: '', to: '' });
+            setDateError('');
+          }}>Clear dates</button>
+          {dateError && <p role="alert">{dateError}</p>}
+        </form>
+
         {/* Error banner */}
         {error && (
           <div
@@ -192,7 +228,7 @@ export default function ApplicationTracker() {
             </div>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => setRetryCount((count) => count + 1)}
               style={{
                 background: '#fff',
                 border: '1px solid #d0d5dd',
@@ -311,7 +347,7 @@ export default function ApplicationTracker() {
                 </div>
               ) : applications.length === 0 ? (
                 <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '32px 10px' }}>
-                  No applications recorded yet.
+                  {dateRange.from || dateRange.to ? 'No applications in this date range.' : 'No applications recorded yet.'}
                 </div>
               ) : (
                 applications.map((app) => (
@@ -321,7 +357,7 @@ export default function ApplicationTracker() {
                     onClick={() =>
                       handleSelectItem({
                         ...app,
-                        stageLabel: 'Applied',
+                        stageLabel: app.status || 'Applied',
                       })
                     }
                   >
@@ -339,7 +375,12 @@ export default function ApplicationTracker() {
                       {app.job?.company || 'Company'}
                     </div>
                     <div className="tracker-card-meta">
-                      {app.job?.location || 'Remote'} · {app.job?.workType || 'Hybrid'} · Applied {getRelativeTime(app.createdAt || app.appliedAt)}
+                      {app.job?.location || 'Location unavailable'} · Applied {getRelativeTime(app.createdAt || app.appliedAt)}
+                    </div>
+                    <div className="tracker-application-labels">
+                      <span>{app.method === 'auto' ? 'Automatic' : 'Manual'}</span>
+                      <span>{app.status || 'Status unavailable'}</span>
+                      <span>{app.job?.isActive === false ? 'Job closed' : app.job?.isActive === true ? 'Job open' : 'Job unavailable'}</span>
                     </div>
                     <div className="tracker-card-bottom">
                       {typeof (app.job?.match?.score ?? app.job?.fit) === 'number' ? (
@@ -425,6 +466,11 @@ export default function ApplicationTracker() {
                     <span className="tracker-drawer-badge badge-status">
                       {selectedItem.stageLabel || 'Applied'}
                     </span>
+                    {selectedItem.status !== 'saved' && (
+                      <span className="tracker-drawer-badge badge-status">
+                        {selectedItem.job?.isActive === false ? 'Job closed' : selectedItem.job?.isActive === true ? 'Job open' : 'Job unavailable'}
+                      </span>
+                    )}
                     {selectedItem.method && (
                       <span className="tracker-drawer-badge badge-tailored">
                         {selectedItem.method === 'auto' ? 'Automatic Apply' : 'Manual Apply'}
