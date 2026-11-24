@@ -13,6 +13,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:telemetry
-      - run: node --test tests/jobWorkTypes.test.js
+      - run: node --test tests/jobWorkTypes.test.js tests/employerHandoff.test.js
       - run: npm run lint
       - run: npm run build
