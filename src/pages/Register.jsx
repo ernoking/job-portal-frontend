@@ -244,9 +244,9 @@ export default function Register() {
             >
               <span className="terms-flex-wrap">
                 <span>I agree to the</span>
-                <a href="#terms" className="terms-link">Terms</a>
+                <a href="https://docs.google.com/document/u/0/d/e/2PACX-1vSPqCl4H8o7SvzCufdm8rqH2yQdrxFVo6JzwEa1PeR2IGVai0V1HwlTnH4_5R37ghV4UJi10KndAhEp/pub?pli=1" className="terms-link">Terms</a>
                 <span>and</span>
-                <a href="#privacy" className="terms-link">Privacy Policy</a>
+                <a href="https://docs.google.com/document/d/e/2PACX-1vRu1x78D4aNMAz_f_8GW5Yf-WVZ6v2CsBqaSDH3P0e7q53CjcSmbu7JbvROeG4u6laZy1Y52QCmEf6D/pub" className="terms-link">Privacy Policy</a>
                 <span className="detached-period">.</span>
               </span>
             </Checkbox>

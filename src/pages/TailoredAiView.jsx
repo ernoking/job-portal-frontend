@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { handoffToEmployer } from '../utils/employerHandoff.js';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import AiRateLimitBanner from '../components/common/AiRateLimitBanner';
@@ -35,6 +36,7 @@ export default function TailoredAiView() {
   const [isDownloadingResume, setIsDownloadingResume] = useState(false);
   const [isDownloadingLetter, setIsDownloadingLetter] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const applyPending = useRef(false);
   const [applySuccess, setApplySuccess] = useState(false);
   const [applyError, setApplyError] = useState('');
   const [externalApplyUrl, setExternalApplyUrl] = useState(null);
@@ -201,16 +203,18 @@ export default function TailoredAiView() {
     const targetJobId = job?.id || id;
     if (!targetJobId) return;
 
+    if (applyPending.current) return;
+    applyPending.current = true;
     setIsSubmitting(true);
     setApplyError('');
     try {
-      const res = await applyToJob(targetJobId, token);
+      const result = await handoffToEmployer({
+        record: () => applyToJob(targetJobId, token), fallbackUrl: job?.url,
+      });
       setApplySuccess(true);
-      const targetUrl = res?.applyUrl || job?.url;
-      if (targetUrl) {
-        setExternalApplyUrl(targetUrl);
-        window.open(targetUrl, '_blank', 'noopener,noreferrer');
-      }
+      setExternalApplyUrl(result.url);
+      if (!result.url) setApplyError('Application recorded, but the employer link is unavailable.');
+      else if (!result.opened) setApplyError('Your browser blocked the new tab. Use Open Employer Website below.');
     } catch (err) {
       if (err?.data?.error?.code === 'ALREADY_APPLIED') {
         setApplyError('You have already applied to this job.');
@@ -220,6 +224,7 @@ export default function TailoredAiView() {
         setApplyError(err?.message || 'Unable to record your application.');
       }
     } finally {
+      applyPending.current = false;
       setIsSubmitting(false);
     }
   };

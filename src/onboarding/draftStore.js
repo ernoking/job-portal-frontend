@@ -9,6 +9,9 @@ function loadInitialDraft() {
         if (parsed && typeof parsed === 'object') {
           return {
             preferences: parsed.preferences || null,
+            profile: parsed.profile || null,
+            previewId: typeof parsed.previewId === 'string' ? parsed.previewId : null,
+            refreshFields: Array.isArray(parsed.refreshFields) ? parsed.refreshFields : [],
             cvId: typeof parsed.cvId === 'string' ? parsed.cvId : null,
             uploadedFileName: typeof parsed.uploadedFileName === 'string' ? parsed.uploadedFileName : null,
             extractedCvProfile: parsed.extractedCvProfile || null,
