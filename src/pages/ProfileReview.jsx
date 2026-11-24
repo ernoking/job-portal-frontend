@@ -8,7 +8,7 @@ import SkillChip from '../components/profile/SkillChip';
 import LanguageRow from '../components/profile/LanguageRow';
 import ActionBar from '../components/profile/ActionBar';
 import VerifyPhoneModal from '../components/profile/VerifyPhoneModal';
-import { getProfile } from '../api/profile';
+import { getReviewProfile } from '../api/profile';
 import { clearDraft, setDraft } from '../onboarding/draftStore';
 import './ProfileReview.css';
 
@@ -63,7 +63,7 @@ export default function ProfileReview() {
 
   useEffect(() => {
     let isMounted = true;
-    getProfile()
+    getReviewProfile()
       .then((data) => {
         if (isMounted) {
           if (!data || !data.personal) {

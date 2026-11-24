@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/profile/AppHeader';
 import ActionBar from '../components/profile/ActionBar';
-import { getPreferences, savePreferences } from '../api/preferences';
-import { getProfile, confirmProfile } from '../api/profile';
+import { savePreferences } from '../api/preferences';
+import { getReviewProfile, confirmProfile } from '../api/profile';
 import { clearDraft } from '../onboarding/draftStore';
 import './ReviewCareerGoals.css';
 
@@ -37,33 +37,15 @@ export default function ReviewCareerGoals() {
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getPreferences(), getProfile()])
-      .then(([prefs, profileData]) => {
+    getReviewProfile()
+      .then((profileData) => {
         if (!isMounted) return;
-        if (prefs) {
-          if (Array.isArray(prefs.roles) && prefs.roles.length > 0) {
-            setRoles(prefs.roles);
-          }
-          if (Array.isArray(prefs.workTypes) && prefs.workTypes.length > 0) {
-            setWorkTypes(prefs.workTypes);
-          }
-          if (prefs.seniority) {
-            setSeniority(prefs.seniority);
-          }
-          if (prefs.salary) {
-            setSalaryAmount(prefs.salary);
-          }
-        } else if (profileData?.career) {
-          if (profileData.career.role) {
-            setRoles([profileData.career.role]);
-          }
-          if (profileData.career.workType) {
-            setWorkTypes([profileData.career.workType]);
-          }
-          if (profileData.career.seniority) {
-            setSeniority(profileData.career.seniority);
-          }
-        }
+        const career = profileData?.career || {};
+        setRoles((career.targetRoles || '').split(',').map(value => value.trim()).filter(Boolean));
+        setWorkTypes((career.workType || '').split(',').map(value => value.trim()).filter(Boolean));
+        const level = (career.seniority || '').toLowerCase();
+        setSeniority(level.startsWith('mid') ? 'Mid' : level.startsWith('intern') ? 'Internship' :
+          SENIORITY_LEVELS.find(item => item.id.toLowerCase() === level)?.id || '');
         setLoading(false);
       })
       .catch(() => {
@@ -124,12 +106,12 @@ export default function ReviewCareerGoals() {
       });
 
       // Confirm profile
-      const profile = await getProfile();
+      const profile = await getReviewProfile();
       const updatedProfile = {
         ...profile,
         career: {
           ...profile?.career,
-          role: roles.join(', '),
+          targetRoles: roles.join(', '),
           workType: workTypes.join(', '),
           seniority: seniority,
           salaryExpectation: salaryAmount ? `${salaryAmount} ${currency}` : '',
