@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { handoffToEmployer } from '../utils/employerHandoff.js';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getMatchDetail } from '../api/jobs';
@@ -17,6 +18,7 @@ export default function StandardApplyView() {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const applyPending = useRef(false);
   const [error, setError] = useState('');
   const [isAppliedSuccess, setIsAppliedSuccess] = useState(false);
   const [externalApplyUrl, setExternalApplyUrl] = useState(null);
@@ -74,17 +76,19 @@ export default function StandardApplyView() {
     const targetJobId = job?.id || id;
     if (!targetJobId) return;
 
+    if (applyPending.current) return;
+    applyPending.current = true;
     setIsSubmitting(true);
     setError('');
 
     try {
-      const res = await applyToJob(targetJobId, token);
+      const result = await handoffToEmployer({
+        record: () => applyToJob(targetJobId, token), fallbackUrl: job?.url,
+      });
       setIsAppliedSuccess(true);
-      const targetUrl = res?.applyUrl || job?.url;
-      if (targetUrl) {
-        setExternalApplyUrl(targetUrl);
-        window.open(targetUrl, '_blank', 'noopener,noreferrer');
-      }
+      setExternalApplyUrl(result.url);
+      if (!result.url) setError('Application recorded, but the employer link is unavailable.');
+      else if (!result.opened) setError('Your browser blocked the new tab. Use Open Employer Website below.');
     } catch (err) {
       if (err?.data?.error?.code === 'ALREADY_APPLIED') {
         setError('You have already applied to this job.');
@@ -96,6 +100,7 @@ export default function StandardApplyView() {
         setError(err?.message || 'Unable to record your application. Please try again.');
       }
     } finally {
+      applyPending.current = false;
       setIsSubmitting(false);
     }
   };
