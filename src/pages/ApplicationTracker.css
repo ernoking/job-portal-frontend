@@ -278,6 +278,11 @@
   border-radius: 6px;
 }
 
+.tracker-fit-pill.is-unavailable {
+  color: #667085;
+  background-color: #f2f4f7;
+}
+
 .tracker-card-dots {
   color: #667085;
   font-size: 16px;

@@ -6,10 +6,30 @@ const WORK_TYPES = { remote: 'remote', hybrid: 'hybrid', on_site: 'on_site', 'on
 export function canonicalWorkType(value) {
   return WORK_TYPES[String(value || '').toLowerCase()] || 'unknown';
 }
+
+const SENIORITIES = {
+  intern: 'intern',
+  internship: 'intern',
+  junior: 'junior',
+  mid: 'mid',
+  'mid-level': 'mid',
+  'mid–level': 'mid',
+  senior: 'senior',
+  lead: 'lead',
+  unknown: 'unknown',
+};
+export function canonicalSeniority(value) {
+  return SENIORITIES[String(value || '').toLowerCase()] || 'unknown';
+}
+
 function jobsPath(page, filters = {}) {
   const params = new URLSearchParams({ sort: 'best_fit', page: String(page), pageSize: '50' });
-  const types = [...new Set((filters.workTypes || []).map(canonicalWorkType))];
+  const types = [...new Set((filters.workTypes || []).map(canonicalWorkType).filter((t) => t !== 'unknown'))];
   if (types.length) params.set('workType', types.join(','));
+
+  const seniorities = [...new Set((filters.seniorityLevels || []).map(canonicalSeniority).filter((s) => s !== 'unknown'))];
+  if (seniorities.length) params.set('seniority', seniorities.join(','));
+
   return `/jobs?${params}`;
 }
 
@@ -230,6 +250,7 @@ export function filterJobs(jobs, filters) {
     keywords = '',
     location = '',
     workTypes = [],
+    seniorityLevels = [],
     minMatch = 0,
   } = filters;
 
@@ -248,6 +269,17 @@ export function filterJobs(jobs, filters) {
     if (Array.isArray(workTypes) && workTypes.length > 0 &&
         !workTypes.some((type) => canonicalWorkType(type) === canonicalWorkType(job.workType))) {
       return false;
+    }
+
+    // Seniority filter: canonical comparison
+    if (Array.isArray(seniorityLevels) && seniorityLevels.length > 0) {
+      const canonicalLevels = seniorityLevels.map(canonicalSeniority).filter((s) => s !== 'unknown');
+      if (canonicalLevels.length > 0) {
+        const jobSeniority = canonicalSeniority(job.seniority);
+        if (!canonicalLevels.includes(jobSeniority)) {
+          return false;
+        }
+      }
     }
 
     // Location filter (case-insensitive substring match)

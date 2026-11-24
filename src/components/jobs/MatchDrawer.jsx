@@ -12,13 +12,15 @@ export default function MatchDrawer({
   error,
   onClose,
   onRetry,
+  onApply,
   onApplySuccess,
 }) {
   const drawerRef = useRef(null);
   const closeButtonRef = useRef(null);
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const userId = user?.id || null;
 
-  const [isSaved, setIsSaved] = useState(() => (job?.id ? isJobSaved(job.id) : false));
+  const [isSaved, setIsSaved] = useState(() => (job?.id ? isJobSaved(job.id, userId) : false));
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState(null);
   const [hasApplied, setHasApplied] = useState(() => Boolean(job?.application?.status === 'applied'));
@@ -26,7 +28,7 @@ export default function MatchDrawer({
   const [lastJobId, setLastJobId] = useState(job?.id);
   if (job?.id !== lastJobId) {
     setLastJobId(job?.id);
-    setIsSaved(job?.id ? isJobSaved(job.id) : false);
+    setIsSaved(job?.id ? isJobSaved(job.id, userId) : false);
     setIsApplying(false);
     setApplyError(null);
     setHasApplied(Boolean(job?.application?.status === 'applied'));
@@ -114,16 +116,30 @@ export default function MatchDrawer({
 
   const handleApplyClick = async () => {
     if (isApplying || hasApplied) return;
+
+    if (onApply) {
+      onApply(job);
+      return;
+    }
+
     setIsApplying(true);
     setApplyError(null);
 
     try {
-      await applyToJob(id, token);
+      const res = await applyToJob(id, token);
       setHasApplied(true);
-      if (onApplySuccess) onApplySuccess(job);
+      const targetUrl = res?.applyUrl || job?.url;
+      if (targetUrl) {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+      if (onApplySuccess) onApplySuccess(job, res);
     } catch (err) {
       if (err?.data?.error?.code === 'ALREADY_APPLIED') {
         setHasApplied(true);
+        const targetUrl = err?.data?.applyUrl || job?.url;
+        if (targetUrl) {
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
       } else {
         setApplyError(err?.message || 'Unable to submit application.');
       }
@@ -134,7 +150,7 @@ export default function MatchDrawer({
 
   const handleSaveClick = () => {
     if (job) {
-      const nowSaved = toggleSaveJob(job);
+      const nowSaved = toggleSaveJob(job, userId);
       setIsSaved(nowSaved);
     }
   };

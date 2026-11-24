@@ -23,6 +23,7 @@ const INITIAL_FILTERS = {
   keywords: '',
   location: 'Budapest',
   workTypes: USE_MOCK_JOBS ? ['Remote', 'Hybrid'] : [],
+  seniorityLevels: [],
   minMatch: 80,
 };
 
@@ -92,12 +93,16 @@ export default function JobsFeed() {
   const [retryCount, setRetryCount] = useState(0);
   const requestGeneration = useRef(0);
   const workTypesKey = [...filters.workTypes].sort().join(',');
+  const seniorityKey = [...(filters.seniorityLevels || [])].sort().join(',');
 
-  // Fetch the selected arrangement across catalogue pages; discard superseded results.
+  // Fetch the selected arrangement and seniority across catalogue pages; discard superseded results.
   useEffect(() => {
     let isMounted = true;
     const generation = ++requestGeneration.current;
-    getMatches({ workTypes: workTypesKey ? workTypesKey.split(',') : [] })
+    getMatches({
+      workTypes: workTypesKey ? workTypesKey.split(',') : [],
+      seniorityLevels: seniorityKey ? seniorityKey.split(',') : [],
+    })
       .then((res) => {
         if (isMounted && generation === requestGeneration.current) {
           setJobPages(res.pages);
@@ -124,7 +129,7 @@ export default function JobsFeed() {
       isMounted = false;
       requestGeneration.current += 1;
     };
-  }, [workTypesKey, retryCount]);
+  }, [workTypesKey, seniorityKey, retryCount]);
 
   const resetRequestState = useCallback(() => {
     requestGeneration.current += 1;
@@ -146,7 +151,12 @@ export default function JobsFeed() {
     const generation = requestGeneration.current;
 
     try {
-      const res = await fetchMorePages(paginationMeta.nextPageToLoad, paginationMeta.totalPages, undefined, { workTypes: filters.workTypes });
+      const res = await fetchMorePages(
+        paginationMeta.nextPageToLoad,
+        paginationMeta.totalPages,
+        undefined,
+        { workTypes: filters.workTypes, seniorityLevels: filters.seniorityLevels }
+      );
       if (generation !== requestGeneration.current) return;
       setJobPages((prev) => ({ ...prev, ...res.pages }));
 
@@ -167,7 +177,7 @@ export default function JobsFeed() {
     } finally {
       if (generation === requestGeneration.current) setIsFetchingMorePages(false);
     }
-  }, [paginationMeta.nextPageToLoad, paginationMeta.totalPages, isFetchingMorePages, filters.workTypes]);
+  }, [paginationMeta.nextPageToLoad, paginationMeta.totalPages, isFetchingMorePages, filters.workTypes, filters.seniorityLevels]);
 
   const handleRetryFailedPages = useCallback(async () => {
     if (paginationMeta.failedPages.length === 0 || isRetryingFailedPages) return;
@@ -176,7 +186,10 @@ export default function JobsFeed() {
     const generation = requestGeneration.current;
 
     try {
-      const res = await retryFailedPages(paginationMeta.failedPages, { workTypes: filters.workTypes });
+      const res = await retryFailedPages(paginationMeta.failedPages, {
+        workTypes: filters.workTypes,
+        seniorityLevels: filters.seniorityLevels,
+      });
       if (generation !== requestGeneration.current) return;
       setJobPages((prev) => ({ ...prev, ...res.pages }));
 
@@ -196,7 +209,7 @@ export default function JobsFeed() {
     } finally {
       if (generation === requestGeneration.current) setIsRetryingFailedPages(false);
     }
-  }, [paginationMeta.failedPages, isRetryingFailedPages, filters.workTypes]);
+  }, [paginationMeta.failedPages, isRetryingFailedPages, filters.workTypes, filters.seniorityLevels]);
 
   const [visibleMoreCount, setVisibleMoreCount] = useState(2);
 
@@ -543,6 +556,11 @@ export default function JobsFeed() {
         onApply={(job) => {
           handleCloseDrawer();
           navigate(`/jobs/${job?.id || 'job-1'}/apply`);
+        }}
+        onApplySuccess={(job) => {
+          if (job?.id) {
+            setAppliedJobIds((prev) => new Set([...prev, job.id]));
+          }
         }}
       />
     </div>

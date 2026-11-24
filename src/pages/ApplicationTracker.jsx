@@ -32,16 +32,29 @@ function getRelativeTime(isoString) {
 }
 
 export default function ApplicationTracker() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const userId = user?.id || null;
   const [applications, setApplications] = useState([]);
-  const [savedJobs, setSavedJobs] = useState(getSavedJobs);
+  const [savedJobs, setSavedJobs] = useState(() => getSavedJobs(userId));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (userId !== prevUserId) {
+    setPrevUserId(userId);
+    setSavedJobs(getSavedJobs(userId));
+    try {
+      const data = userId ? JSON.parse(localStorage.getItem(`matchwise_tracker_notes_${userId}`) || '{}') : {};
+      setPersonalNotes(data);
+    } catch {
+      setPersonalNotes({});
+    }
+  }
 
   // Sync saved jobs if updated from other tabs/modals
   useEffect(() => {
     const handleSync = () => {
-      setSavedJobs(getSavedJobs());
+      setSavedJobs(getSavedJobs(userId));
     };
     window.addEventListener('matchwise_saved_jobs_changed', handleSync);
     window.addEventListener('storage', handleSync);
@@ -49,14 +62,15 @@ export default function ApplicationTracker() {
       window.removeEventListener('matchwise_saved_jobs_changed', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, []);
+  }, [userId]);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [tailoringInfo, setTailoringInfo] = useState(null);
   const [personalNotes, setPersonalNotes] = useState(() => {
+    if (!userId) return {};
     try {
-      return JSON.parse(localStorage.getItem('matchwise_tracker_notes') || '{}');
+      return JSON.parse(localStorage.getItem(`matchwise_tracker_notes_${userId}`) || '{}');
     } catch {
       return {};
     }
@@ -126,10 +140,12 @@ export default function ApplicationTracker() {
   };
 
   const handleSaveNote = (jobId, text) => {
+    if (!jobId) return;
     const updated = { ...personalNotes, [jobId]: text };
     setPersonalNotes(updated);
+    if (!userId) return;
     try {
-      localStorage.setItem('matchwise_tracker_notes', JSON.stringify(updated));
+      localStorage.setItem(`matchwise_tracker_notes_${userId}`, JSON.stringify(updated));
     } catch {
       // safe fallback for restricted storage
     }
@@ -259,9 +275,15 @@ export default function ApplicationTracker() {
                       {job.location || 'Remote'} · {job.workType || 'Hybrid'}
                     </div>
                     <div className="tracker-card-bottom">
-                      <span className="tracker-fit-pill">
-                        {job.match?.score || job.fit || 90}% fit
-                      </span>
+                      {typeof (job.match?.score ?? job.fit) === 'number' ? (
+                        <span className="tracker-fit-pill">
+                          {job.match?.score ?? job.fit}% fit
+                        </span>
+                      ) : (
+                        <span className="tracker-fit-pill is-unavailable" title="Fit score unavailable">
+                          — fit
+                        </span>
+                      )}
                       <Link
                         to={`/jobs/${job.id}/apply`}
                         onClick={(e) => e.stopPropagation()}
@@ -320,9 +342,15 @@ export default function ApplicationTracker() {
                       {app.job?.location || 'Remote'} · {app.job?.workType || 'Hybrid'} · Applied {getRelativeTime(app.createdAt || app.appliedAt)}
                     </div>
                     <div className="tracker-card-bottom">
-                      <span className="tracker-fit-pill">
-                        {app.job?.match?.score || 84}% fit
-                      </span>
+                      {typeof (app.job?.match?.score ?? app.job?.fit) === 'number' ? (
+                        <span className="tracker-fit-pill">
+                          {app.job?.match?.score ?? app.job?.fit}% fit
+                        </span>
+                      ) : (
+                        <span className="tracker-fit-pill is-unavailable" title="Fit score unavailable">
+                          — fit
+                        </span>
+                      )}
                       <span className="tracker-card-dots">•••</span>
                     </div>
                   </div>
@@ -636,22 +664,20 @@ export default function ApplicationTracker() {
               <button
                 type="button"
                 className="tracker-withdraw-btn"
-                onClick={() => {
-                  if (window.confirm('Withdraw this application?')) {
-                    setSelectedItem(null);
-                  }
-                }}
+                disabled={true}
+                title="Application withdrawal workflow coming soon"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               >
-                Withdraw application
+                Withdraw application · Coming soon
               </button>
               <button
                 type="button"
                 className="tracker-prepare-btn"
-                onClick={() => {
-                  alert('Opening AI Interview Preparation...');
-                }}
+                disabled={true}
+                title="Interview preparation and scheduling coming soon"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
               >
-                Prepare with AI / Schedule
+                Prepare with AI / Schedule · Coming soon
               </button>
             </div>
           </div>

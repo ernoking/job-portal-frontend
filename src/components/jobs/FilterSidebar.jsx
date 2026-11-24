@@ -11,7 +11,7 @@ export default function FilterSidebar({
     keywords = '',
     location = 'Budapest',
     workTypes = ['Remote', 'Hybrid'],
-    seniorityLevels = ['Mid'],
+    seniorityLevels = [],
     minMatch = 80,
   } = filters;
 

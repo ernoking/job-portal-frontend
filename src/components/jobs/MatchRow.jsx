@@ -1,5 +1,6 @@
 import React from 'react';
 import { isJobSaved, toggleSaveJob } from '../../api/savedJobs';
+import { useAuth } from '../../auth';
 import './MatchRow.css';
 
 export default function MatchRow({
@@ -10,12 +11,14 @@ export default function MatchRow({
   isExpanded = false,
   onToggleExpand,
 }) {
-  const [saved, setSaved] = React.useState(() => (job?.id ? isJobSaved(job.id) : false));
+  const { user } = useAuth();
+  const userId = user?.id || null;
+  const [saved, setSaved] = React.useState(() => (job?.id ? isJobSaved(job.id, userId) : false));
   const [lastJobId, setLastJobId] = React.useState(job?.id);
 
   if (job?.id !== lastJobId) {
     setLastJobId(job?.id);
-    setSaved(job?.id ? isJobSaved(job.id) : false);
+    setSaved(job?.id ? isJobSaved(job.id, userId) : false);
   }
 
   if (!job) return null;
@@ -77,7 +80,7 @@ export default function MatchRow({
             style={{ width: '32px', height: '32px', padding: 0 }}
             onClick={(e) => {
               e.stopPropagation();
-              const now = toggleSaveJob(job);
+              const now = toggleSaveJob(job, userId);
               setSaved(now);
             }}
             title={saved ? 'Remove from saved' : 'Save job'}
