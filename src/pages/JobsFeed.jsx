@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import FilterSidebar from '../components/jobs/FilterSidebar';
@@ -89,12 +89,17 @@ export default function JobsFeed() {
   const [drawerError, setDrawerError] = useState(null);
   const isDrawerLoading = Boolean(jobParam && !activeJob && !drawerError);
 
-  // Fetch all open jobs on mount
+  const [retryCount, setRetryCount] = useState(0);
+  const requestGeneration = useRef(0);
+  const workTypesKey = [...filters.workTypes].sort().join(',');
+
+  // Fetch the selected arrangement across catalogue pages; discard superseded results.
   useEffect(() => {
     let isMounted = true;
-    getMatches()
+    const generation = ++requestGeneration.current;
+    getMatches({ workTypes: workTypesKey ? workTypesKey.split(',') : [] })
       .then((res) => {
-        if (isMounted) {
+        if (isMounted && generation === requestGeneration.current) {
           setJobPages(res.pages);
           if (res && typeof res === 'object' && 'isIncomplete' in res) {
             setPaginationMeta({
@@ -109,7 +114,7 @@ export default function JobsFeed() {
         }
       })
       .catch((err) => {
-        if (isMounted) {
+        if (isMounted && generation === requestGeneration.current) {
           setError(err?.message || 'Unable to load jobs. Please try again.');
           setLoading(false);
         }
@@ -117,40 +122,32 @@ export default function JobsFeed() {
 
     return () => {
       isMounted = false;
+      requestGeneration.current += 1;
     };
-  }, []);
+  }, [workTypesKey, retryCount]);
 
-  const handleRetry = useCallback(() => {
+  const resetRequestState = useCallback(() => {
+    requestGeneration.current += 1;
     setLoading(true);
     setError(null);
     setPageActionError(null);
-    getMatches()
-      .then((res) => {
-        setJobPages(res.pages);
-        if (res && typeof res === 'object' && 'isIncomplete' in res) {
-          setPaginationMeta({
-            totalPages: res.totalPages || 1,
-            loadedPages: res.loadedPages || [1],
-            failedPages: res.failedPages || [],
-            nextPageToLoad: res.nextPageToLoad ?? null,
-            isIncomplete: Boolean(res.isIncomplete),
-          });
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err?.message || 'Unable to load jobs. Please try again.');
-        setLoading(false);
-      });
+    setIsFetchingMorePages(false);
+    setIsRetryingFailedPages(false);
   }, []);
+  const handleRetry = useCallback(() => {
+    resetRequestState();
+    setRetryCount((count) => count + 1);
+  }, [resetRequestState]);
 
   const handleFetchMorePages = useCallback(async () => {
     if (!paginationMeta.nextPageToLoad || isFetchingMorePages) return;
     setIsFetchingMorePages(true);
     setPageActionError(null);
+    const generation = requestGeneration.current;
 
     try {
-      const res = await fetchMorePages(paginationMeta.nextPageToLoad, paginationMeta.totalPages);
+      const res = await fetchMorePages(paginationMeta.nextPageToLoad, paginationMeta.totalPages, undefined, { workTypes: filters.workTypes });
+      if (generation !== requestGeneration.current) return;
       setJobPages((prev) => ({ ...prev, ...res.pages }));
 
       setPaginationMeta((prev) => {
@@ -166,19 +163,21 @@ export default function JobsFeed() {
         };
       });
     } catch (err) {
-      setPageActionError(err?.message || 'Unable to load further pages.');
+      if (generation === requestGeneration.current) setPageActionError(err?.message || 'Unable to load further pages.');
     } finally {
-      setIsFetchingMorePages(false);
+      if (generation === requestGeneration.current) setIsFetchingMorePages(false);
     }
-  }, [paginationMeta.nextPageToLoad, paginationMeta.totalPages, isFetchingMorePages]);
+  }, [paginationMeta.nextPageToLoad, paginationMeta.totalPages, isFetchingMorePages, filters.workTypes]);
 
   const handleRetryFailedPages = useCallback(async () => {
     if (paginationMeta.failedPages.length === 0 || isRetryingFailedPages) return;
     setIsRetryingFailedPages(true);
     setPageActionError(null);
+    const generation = requestGeneration.current;
 
     try {
-      const res = await retryFailedPages(paginationMeta.failedPages);
+      const res = await retryFailedPages(paginationMeta.failedPages, { workTypes: filters.workTypes });
+      if (generation !== requestGeneration.current) return;
       setJobPages((prev) => ({ ...prev, ...res.pages }));
 
       setPaginationMeta((prev) => {
@@ -193,11 +192,11 @@ export default function JobsFeed() {
         };
       });
     } catch (err) {
-      setPageActionError(err?.message || 'Unable to retry failed pages.');
+      if (generation === requestGeneration.current) setPageActionError(err?.message || 'Unable to retry failed pages.');
     } finally {
-      setIsRetryingFailedPages(false);
+      if (generation === requestGeneration.current) setIsRetryingFailedPages(false);
     }
-  }, [paginationMeta.failedPages, isRetryingFailedPages]);
+  }, [paginationMeta.failedPages, isRetryingFailedPages, filters.workTypes]);
 
   const [visibleMoreCount, setVisibleMoreCount] = useState(2);
 
@@ -278,14 +277,14 @@ export default function JobsFeed() {
   }, [jobParam, fetchDrawerDetail]);
 
   const handleFilterChange = useCallback((newFilters) => {
+    if ([...newFilters.workTypes].sort().join(',') !== workTypesKey) resetRequestState();
     setFilters(newFilters);
     setVisibleMoreCount(2);
-  }, []);
+  }, [workTypesKey, resetRequestState]);
 
   const handleResetFilters = useCallback(() => {
-    setFilters(INITIAL_FILTERS);
-    setVisibleMoreCount(2);
-  }, []);
+    handleFilterChange(INITIAL_FILTERS);
+  }, [handleFilterChange]);
 
   // Drawer open / close handlers
   const handleOpenDrawer = useCallback(
@@ -388,7 +387,6 @@ export default function JobsFeed() {
           <FilterSidebar
             filters={filters}
             onFilterChange={handleFilterChange}
-            disabledWorkType={!USE_MOCK_JOBS}
           />
 
           {/* Right Column: Feed Content */}
