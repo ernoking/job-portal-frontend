@@ -98,3 +98,16 @@ error and must be analysed again; they never fall back to the legacy save endpoi
 
 `node --test tests/profileRefresh.test.js` covers merge selection, confirmation payloads,
 confirmed-profile isolation and expired reviews.
+
+### Work-arrangement filters
+
+The jobs feed's existing Remote, Hybrid and On-site controls use backend `workType`
+filtering before pagination. Every initial page, later page and retry keeps the same
+selection. On-site maps to `on_site`; employment type remains separate. Jobs without
+known arrangement metadata appear when no arrangement is selected, but do not pass an
+explicit Remote/Hybrid/On-site selection. Results retain the existing keyword, location
+and minimum-match filters. Reset restores the existing defaults, including Budapest.
+
+Requires backend PR #27 and its `job_work_arrangement` migration, followed by a normal
+job import to populate the field. No new frontend environment variables are needed.
+Run `node --test tests/jobWorkTypes.test.js` for API pagination/filter regression checks.
