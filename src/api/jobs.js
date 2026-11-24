@@ -6,10 +6,30 @@ const WORK_TYPES = { remote: 'remote', hybrid: 'hybrid', on_site: 'on_site', 'on
 export function canonicalWorkType(value) {
   return WORK_TYPES[String(value || '').toLowerCase()] || 'unknown';
 }
+
+const SENIORITIES = {
+  intern: 'intern',
+  internship: 'intern',
+  junior: 'junior',
+  mid: 'mid',
+  'mid-level': 'mid',
+  'mid–level': 'mid',
+  senior: 'senior',
+  lead: 'lead',
+  unknown: 'unknown',
+};
+export function canonicalSeniority(value) {
+  return SENIORITIES[String(value || '').toLowerCase()] || 'unknown';
+}
+
 function jobsPath(page, filters = {}) {
   const params = new URLSearchParams({ sort: 'best_fit', page: String(page), pageSize: '50' });
-  const types = [...new Set((filters.workTypes || []).map(canonicalWorkType))];
+  const types = [...new Set((filters.workTypes || []).map(canonicalWorkType).filter((t) => t !== 'unknown'))];
   if (types.length) params.set('workType', types.join(','));
+
+  const seniorities = [...new Set((filters.seniorityLevels || []).map(canonicalSeniority).filter((s) => s !== 'unknown'))];
+  if (seniorities.length) params.set('seniority', seniorities.join(','));
+
   return `/jobs?${params}`;
 }
 
@@ -140,6 +160,48 @@ export function normalizeJob(item) {
   const employmentType = formatLabel(rawEmployment);
   const seniority = formatLabel(item.seniority || '');
 
+  const desc = item.description || '';
+  let parsedAbout = item.aboutRole || desc;
+  let parsedResp = Array.isArray(item.keyResponsibilities) ? item.keyResponsibilities : null;
+  let parsedQual = Array.isArray(item.requirementsQualifications) ? item.requirementsQualifications : null;
+  let parsedBen = Array.isArray(item.benefitsCompensation) ? item.benefitsCompensation : null;
+
+  if (desc && (!parsedResp || !parsedQual)) {
+    const doRegex = /(?:^|\n|(?<=[.!?])\s+|[A-Za-z0-9]\s+)(WHAT YOU[’']LL DO|RESPONSIBILITIES|KEY RESPONSIBILITIES)\s*:/i;
+    const bringRegex = /(?:^|\n|(?<=[.!?])\s+|[A-Za-z0-9]\s+)(WHAT YOU[’']LL BRING|WHAT YOU NEED|REQUIREMENTS|QUALIFICATIONS)\s*:/i;
+    const offerRegex = /(?:^|\n|(?<=[.!?])\s+|[A-Za-z0-9]\s+)(WHAT WE OFFER|BENEFITS|COMPENSATION)\s*:/i;
+
+    const doMatch = doRegex.exec(desc);
+    const bringMatch = bringRegex.exec(desc);
+    const offerMatch = offerRegex.exec(desc);
+
+    if (doMatch && bringMatch) {
+      const doPos = doMatch.index + doMatch[0].indexOf(doMatch[1]);
+      const bringPos = bringMatch.index + bringMatch[0].indexOf(bringMatch[1]);
+      const offerPos = offerMatch ? offerMatch.index + offerMatch[0].indexOf(offerMatch[1]) : desc.length;
+
+      if (!item.aboutRole) {
+        parsedAbout = desc.slice(0, doPos).trim();
+      }
+      if (!parsedResp) {
+        const respText = desc.slice(doPos + doMatch[1].length + 1, bringPos).trim();
+        parsedResp = respText.split(/\s*-\s+/).map((s) => s.trim()).filter((s) => s.length > 5).slice(0, 4);
+      }
+      if (!parsedQual) {
+        const qualText = desc.slice(bringPos + bringMatch[1].length + 1, offerPos).trim();
+        parsedQual = qualText.split(/\s*-\s+/).map((s) => s.trim()).filter((s) => s.length > 5).slice(0, 4);
+      }
+      if (offerMatch && !parsedBen) {
+        const benText = desc.slice(offerPos + offerMatch[1].length + 1).trim();
+        parsedBen = benText.split(/\s*-\s+/).map((s) => s.trim()).filter((s) => s.length > 5).slice(0, 4);
+      }
+    } else if (item.requirements) {
+      if (!parsedQual) {
+        parsedQual = item.requirements.split(/[,;\n•]+/).map((s) => s.trim()).filter(Boolean);
+      }
+    }
+  }
+
   return {
     id: item.id,
     title: item.title || '',
@@ -160,9 +222,14 @@ export function normalizeJob(item) {
       ? match.missingSkills
       : (Array.isArray(item.skillsToBuild) ? item.skillsToBuild : []),
     description: item.description || '',
-    aboutRole: item.description || item.aboutRole || '',
+    aboutRole: parsedAbout,
     requirements: item.requirements || '',
     url: item.url || '',
+    transferableSkills: item.transferableSkills || null,
+    keyResponsibilities: parsedResp,
+    requirementsQualifications: parsedQual,
+    benefitsCompensation: parsedBen,
+    application: item.application || null,
   };
 }
 
@@ -183,6 +250,7 @@ export function filterJobs(jobs, filters) {
     keywords = '',
     location = '',
     workTypes = [],
+    seniorityLevels = [],
     minMatch = 0,
   } = filters;
 
@@ -201,6 +269,17 @@ export function filterJobs(jobs, filters) {
     if (Array.isArray(workTypes) && workTypes.length > 0 &&
         !workTypes.some((type) => canonicalWorkType(type) === canonicalWorkType(job.workType))) {
       return false;
+    }
+
+    // Seniority filter: canonical comparison
+    if (Array.isArray(seniorityLevels) && seniorityLevels.length > 0) {
+      const canonicalLevels = seniorityLevels.map(canonicalSeniority).filter((s) => s !== 'unknown');
+      if (canonicalLevels.length > 0) {
+        const jobSeniority = canonicalSeniority(job.seniority);
+        if (!canonicalLevels.includes(jobSeniority)) {
+          return false;
+        }
+      }
     }
 
     // Location filter (case-insensitive substring match)
@@ -304,17 +383,26 @@ export async function fetchJobs(filters) {
  * @returns {Promise<object|null>}
  */
 export async function getMatchDetail(jobId) {
-  if (USE_MOCK_JOBS) {
+  if (USE_MOCK_JOBS || jobId.startsWith('job-')) {
     const match = MOCK_JOBS.find((j) => j.id === jobId);
-    return match ? normalizeJob(match) : null;
+    if (match) return normalizeJob(match);
   }
 
-  const res = await request(`/jobs/${encodeURIComponent(jobId)}`);
-  if (!res || !res.job) return null;
+  try {
+    const res = await request(`/jobs/${encodeURIComponent(jobId)}`);
+    if (!res || !res.job) {
+      const fallback = MOCK_JOBS.find((j) => j.id === jobId);
+      return fallback ? normalizeJob(fallback) : null;
+    }
 
-  return normalizeJob({
-    ...res.job,
-    match: res.match,
-    application: res.application,
-  });
+    return normalizeJob({
+      ...res.job,
+      match: res.match,
+      application: res.application,
+    });
+  } catch (err) {
+    const fallback = MOCK_JOBS.find((j) => j.id === jobId);
+    if (fallback) return normalizeJob(fallback);
+    throw err;
+  }
 }

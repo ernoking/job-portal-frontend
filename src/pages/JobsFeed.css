@@ -432,3 +432,51 @@
     gap: 4px;
   }
 }
+
+/* Section 6: Layout while the drawer is open (viewports 1280px and wider) */
+@media (min-width: 1280px) {
+  .jobs-feed-page.drawer-is-open .jobs-feed-layout {
+    max-width: none;
+    margin: 35px 0 80px 0;
+    padding: 0 28px;
+    width: calc(100vw - clamp(720px, 65.625vw, 1260px));
+    gap: 0;
+    justify-content: flex-start;
+  }
+
+  .jobs-feed-page.drawer-is-open .filter-sidebar {
+    display: none !important;
+  }
+
+  .jobs-feed-page.drawer-is-open .jobs-feed-content {
+    width: 100% !important;
+    max-width: 604px;
+  }
+
+  .jobs-feed-page.drawer-is-open .jobs-feed-segments-row {
+    display: none !important;
+  }
+
+  .jobs-feed-page.drawer-is-open .featured-match-card {
+    width: 604px !important;
+    max-width: 100%;
+    min-height: 408px;
+    box-sizing: border-box;
+  }
+
+  .jobs-feed-page.drawer-is-open .featured-panels-row {
+    display: flex;
+    gap: 14px;
+  }
+
+  .jobs-feed-page.drawer-is-open .featured-panel {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .jobs-feed-page.drawer-is-open .match-row-card {
+    width: 604px !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}

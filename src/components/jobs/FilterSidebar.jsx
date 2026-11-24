@@ -1,10 +1,17 @@
 import './FilterSidebar.css';
 
-export default function FilterSidebar({ filters, onFilterChange, disabledWorkType = false }) {
+export default function FilterSidebar({
+  filters,
+  onFilterChange,
+  disabledWorkType = false,
+  isCollapsed = false,
+  onToggleCollapse,
+}) {
   const {
     keywords = '',
     location = 'Budapest',
     workTypes = ['Remote', 'Hybrid'],
+    seniorityLevels = [],
     minMatch = 80,
   } = filters;
 
@@ -23,6 +30,13 @@ export default function FilterSidebar({ filters, onFilterChange, disabledWorkTyp
     onFilterChange({ ...filters, workTypes: nextWorkTypes });
   };
 
+  const handleSeniorityToggle = (level) => {
+    const nextSeniority = seniorityLevels.includes(level)
+      ? seniorityLevels.filter((s) => s !== level)
+      : [...seniorityLevels, level];
+    onFilterChange({ ...filters, seniorityLevels: nextSeniority });
+  };
+
   const handleMinMatchChange = (e) => {
     onFilterChange({ ...filters, minMatch: Number(e.target.value) });
   };
@@ -32,8 +46,20 @@ export default function FilterSidebar({ filters, onFilterChange, disabledWorkTyp
   const progressPercent = Math.max(0, Math.min(100, ((minMatch - 10) / 90) * 100));
 
   return (
-    <aside className="filter-sidebar" aria-label="Refine matches">
-      <h2 className="filter-sidebar-title">Refine matches</h2>
+    <aside className={`filter-sidebar ${isCollapsed ? 'is-collapsed' : ''}`} aria-label="Refine matches">
+      <div className="filter-sidebar-header">
+        <h2 className="filter-sidebar-title">Refine matches</h2>
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className="filter-sidebar-toggle-btn"
+            onClick={onToggleCollapse}
+            aria-label="Collapse filters sidebar"
+          >
+            ‹
+          </button>
+        )}
+      </div>
 
       {/* Keywords Filter */}
       <div className="filter-group">
@@ -116,6 +142,45 @@ export default function FilterSidebar({ filters, onFilterChange, disabledWorkTyp
                   )}
                 </span>
                 <span className="filter-checkbox-text">{type}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Seniority Level Filter (Figma Refine Matches) */}
+      <div className="filter-group">
+        <div className="filter-label-row">
+          <span className="filter-label">Seniority level</span>
+        </div>
+        <div className="filter-checkbox-group">
+          {['Internship', 'Junior', 'Mid', 'Senior', 'Lead'].map((level) => {
+            const isChecked = seniorityLevels.includes(level);
+            return (
+              <label key={level} className="filter-checkbox-item">
+                <input
+                  type="checkbox"
+                  className="filter-checkbox-input"
+                  checked={isChecked}
+                  onChange={() => handleSeniorityToggle(level)}
+                />
+                <span
+                  className={`filter-checkbox-custom ${isChecked ? 'is-checked' : ''}`}
+                  aria-hidden="true"
+                >
+                  {isChecked && (
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4L3.5 6.5L9 1"
+                        stroke="#FFFFFF"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <span className="filter-checkbox-text">{level}</span>
               </label>
             );
           })}

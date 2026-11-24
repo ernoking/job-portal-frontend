@@ -24,20 +24,20 @@
 
 .score-ring-number {
   font-family: var(--font-family);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ink, #10261B);
   letter-spacing: -0.02em;
 }
 
 .score-ring-lg .score-ring-number {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .score-ring-unit {
   font-family: var(--font-family);
-  font-size: 7px;
+  font-size: 6px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--muted, #64706A);
   margin-top: 1px;
 }

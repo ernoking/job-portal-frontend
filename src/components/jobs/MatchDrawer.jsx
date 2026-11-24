@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ScoreRing from '../ScoreRing';
+import { isJobSaved, toggleSaveJob } from '../../api/savedJobs';
+import { applyToJob } from '../../api/applications';
+import { useAuth } from '../../auth';
 import './MatchDrawer.css';
 
 export default function MatchDrawer({
@@ -11,11 +13,26 @@ export default function MatchDrawer({
   onClose,
   onRetry,
   onApply,
+  onApplySuccess,
 }) {
   const drawerRef = useRef(null);
   const closeButtonRef = useRef(null);
-  const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(false);
+  const { token, user } = useAuth();
+  const userId = user?.id || null;
+
+  const [isSaved, setIsSaved] = useState(() => (job?.id ? isJobSaved(job.id, userId) : false));
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState(null);
+  const [hasApplied, setHasApplied] = useState(() => Boolean(job?.application?.status === 'applied'));
+
+  const [lastJobId, setLastJobId] = useState(job?.id);
+  if (job?.id !== lastJobId) {
+    setLastJobId(job?.id);
+    setIsSaved(job?.id ? isJobSaved(job.id, userId) : false);
+    setIsApplying(false);
+    setApplyError(null);
+    setHasApplied(Boolean(job?.application?.status === 'applied'));
+  }
 
   // Lock body scroll and focus close button when drawer opens
   useEffect(() => {
@@ -25,7 +42,6 @@ export default function MatchDrawer({
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Focus close button on mount
     closeButtonRef.current?.focus();
 
     return () => {
@@ -85,24 +101,63 @@ export default function MatchDrawer({
     location = '',
     workType = '',
     employmentType = '',
-    fit = 94,
+    fit,
+    whyMatch = [],
+    transferableSkills = null,
+    skillsToBuild = [],
+    aboutRole = '',
+    keyResponsibilities = null,
+    requirementsQualifications = null,
+    benefitsCompensation = null,
   } = job || {};
 
   const hasScore = typeof fit === 'number' && !Number.isNaN(fit);
   const metaString = [company, location, workType, employmentType].filter(Boolean).join(' · ');
 
-  const handleApplyClick = () => {
-    onClose();
+  const handleApplyClick = async () => {
+    if (isApplying || hasApplied) return;
+
     if (onApply) {
       onApply(job);
-    } else {
-      navigate(`/jobs/${id || 'job-1'}/apply`);
+      return;
+    }
+
+    setIsApplying(true);
+    setApplyError(null);
+
+    try {
+      const res = await applyToJob(id, token);
+      setHasApplied(true);
+      const targetUrl = res?.applyUrl || job?.url;
+      if (targetUrl) {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      }
+      if (onApplySuccess) onApplySuccess(job, res);
+    } catch (err) {
+      if (err?.data?.error?.code === 'ALREADY_APPLIED') {
+        setHasApplied(true);
+        const targetUrl = err?.data?.applyUrl || job?.url;
+        if (targetUrl) {
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        setApplyError(err?.message || 'Unable to submit application.');
+      }
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  const handleSaveClick = () => {
+    if (job) {
+      const nowSaved = toggleSaveJob(job, userId);
+      setIsSaved(nowSaved);
     }
   };
 
   return (
     <div
-      className="match-drawer-overlay"
+      className="match-drawer-backdrop"
       onClick={onClose}
       data-testid="match-drawer-overlay"
       role="presentation"
@@ -116,59 +171,67 @@ export default function MatchDrawer({
         onClick={(e) => e.stopPropagation()}
         data-testid="match-drawer-panel"
       >
-        {/* Top Action Bar matching Figma Screen 9 */}
-        <div className="match-drawer-top-bar">
+        {/* Header: height 96px */}
+        <div className="match-drawer-header">
           <button
             ref={closeButtonRef}
             type="button"
-            className="match-drawer-close-circle"
+            className="match-drawer-close-btn"
             onClick={onClose}
             aria-label="Close drawer"
             data-testid="match-drawer-close-btn"
           >
-            ✕
+            ×
           </button>
 
-          <div className="match-drawer-top-info">
-            <h2 id="drawer-role-title" className="match-drawer-header-title">
+          <div className="match-drawer-title-block">
+            <h2 id="drawer-role-title" className="match-drawer-title">
               {title}
             </h2>
-            <p className="match-drawer-header-sub">{metaString}</p>
+            <p className="match-drawer-subtitle">{metaString}</p>
           </div>
 
-          <div className="match-drawer-top-actions">
+          <div className="match-drawer-header-actions">
             {hasScore && (
-              <div className="drawer-fit-ring-badge">
-                <ScoreRing score={fit} size={44} strokeWidth={4} />
+              <div className="match-drawer-ring-wrapper">
+                <ScoreRing score={fit} size={56} stroke={4} />
               </div>
             )}
+
             <button
               type="button"
-              className="drawer-header-apply-btn"
+              className={`match-drawer-apply-btn ${hasApplied ? 'is-applied' : ''}`}
               onClick={handleApplyClick}
+              disabled={isApplying}
             >
-              Apply now →
+              {isApplying ? 'Applying...' : hasApplied ? 'Applied ✓' : 'Apply now →'}
             </button>
+
             <button
               type="button"
-              className={`drawer-bookmark-btn ${isSaved ? 'is-saved' : ''}`}
-              onClick={() => setIsSaved(!isSaved)}
+              className={`match-drawer-bookmark-btn ${isSaved ? 'is-saved' : ''}`}
+              onClick={handleSaveClick}
               aria-label="Save job for later"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? '#10261B' : 'none'} stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? '#17301F' : 'none'} stroke="#17301F" strokeWidth="2">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
               </svg>
             </button>
           </div>
         </div>
 
-        {/* Drawer Scrollable Content */}
-        <div className="match-drawer-content">
+        {applyError && (
+          <div className="match-drawer-apply-error">{applyError}</div>
+        )}
+
+        {/* Scrollable Body */}
+        <div className="match-drawer-body">
           {isLoading ? (
             <div className="match-drawer-loading" data-testid="match-drawer-loading">
-              <div className="match-drawer-skeleton-bar" style={{ width: '40%', height: 20 }} />
-              <div className="match-drawer-skeleton-bar" style={{ width: '80%', height: 36 }} />
-              <div className="match-drawer-skeleton-bar" style={{ width: '100%', height: 160 }} />
+              <div className="match-drawer-skeleton" style={{ width: '40%', height: 16 }} />
+              <div className="match-drawer-skeleton" style={{ width: '90%', height: 12 }} />
+              <div className="match-drawer-skeleton" style={{ width: '85%', height: 12 }} />
+              <div className="match-drawer-skeleton" style={{ width: '100%', height: 60 }} />
             </div>
           ) : error ? (
             <div className="match-drawer-error" data-testid="match-drawer-error">
@@ -186,109 +249,141 @@ export default function MatchDrawer({
             </div>
           ) : job ? (
             <>
-              {/* 1. Why you match */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">Why you match</h3>
-                <p className="drawer-detail-text">
-                  Your hands-on Figma experience and research-led process map directly to the team’s core product workflow.
-                </p>
-                <ul className="drawer-bullet-list">
-                  <li>Design systems: your component-library work at Acme Studio maps to the team’s design system ownership.</li>
-                  <li>Prototyping: your Figma prototypes cover the discovery-to-delivery workflow described in the role.</li>
-                  <li>Collaboration: your day-to-day work with engineers matches the cross-functional squad setup.</li>
-                </ul>
-              </section>
-
-              {/* 2. Transferable skills */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">Transferable skills</h3>
-                <p className="drawer-detail-text">
-                  Your client-facing work and visual design background translate directly to product design: stakeholder communication, fast iteration and presenting design rationale.
-                </p>
-              </section>
-
-              {/* 3. Skills to build */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">Skills to build</h3>
-                <div className="drawer-skills-group">
-                  <span className="skills-sub-tag">CRITICAL REQUIREMENTS</span>
-                  <div className="skill-chip-row">
-                    <span className="skill-badge-item">Motion design</span>
-                    <span className="skill-boost-badge">Boosts your match score by +12%</span>
+              {/* Section 1: Why you match (four plain lines, no bullets, no bold) */}
+              {Array.isArray(whyMatch) && whyMatch.length > 0 && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">Why you match</h3>
+                  <div className="drawer-plain-lines">
+                    {whyMatch.map((line, idx) => (
+                      <p key={idx} className="drawer-body-line">
+                        {typeof line === 'string' ? line : line?.name || ''}
+                      </p>
+                    ))}
                   </div>
-                </div>
+                </section>
+              )}
 
-                <div className="drawer-skills-group" style={{ marginTop: 14 }}>
-                  <span className="skills-sub-tag">NICE TO HAVE</span>
-                  <div className="skill-chip-row">
-                    <span className="skill-badge-item">Product analytics</span>
-                    <span className="skill-boost-badge">Boosts your match score by +8%</span>
+              {/* Section 2: Transferable skills (one paragraph, plain text; hidden if missing) */}
+              {transferableSkills && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">Transferable skills</h3>
+                  <p className="drawer-body-line">{transferableSkills}</p>
+                </section>
+              )}
+
+              {/* Section 3: Skills to build */}
+              {Array.isArray(skillsToBuild) && skillsToBuild.length > 0 && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">Skills to build</h3>
+                  {skillsToBuild.some((s) => s.category) ? (
+                    <>
+                      {skillsToBuild.filter((s) => s.category === 'critical').map((item, idx) => (
+                        <div key={idx} className="drawer-skills-group">
+                          <span className="drawer-group-label">CRITICAL REQUIREMENTS</span>
+                          <div className="drawer-chip-row">
+                            <span className="drawer-chip">{item.name}</span>
+                            {item.impact && (
+                              <span className="drawer-boost-text">Boosts your match score by {item.impact}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {skillsToBuild.filter((s) => s.category === 'nice_to_have').map((item, idx) => (
+                        <div key={idx} className="drawer-skills-group" style={{ marginTop: 14 }}>
+                          <span className="drawer-group-label">NICE TO HAVE</span>
+                          <div className="drawer-chip-row">
+                            <span className="drawer-chip">{item.name}</span>
+                            {item.impact && (
+                              <span className="drawer-boost-text">Boosts your match score by {item.impact}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="drawer-skills-group">
+                      <div className="drawer-chip-row" style={{ flexWrap: 'wrap' }}>
+                        {skillsToBuild.map((item, idx) => (
+                          <span key={idx} className="drawer-chip">
+                            {typeof item === 'string' ? item : item.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Section 4: About the role and team */}
+              {aboutRole && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">About the role and team</h3>
+                  <p className="drawer-body-line">{aboutRole}</p>
+                </section>
+              )}
+
+              {/* Section 5: Key responsibilities (literal • bullet character) */}
+              {Array.isArray(keyResponsibilities) && keyResponsibilities.length > 0 && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">Key responsibilities</h3>
+                  <div className="drawer-bullet-lines">
+                    {keyResponsibilities.map((item, idx) => (
+                      <p key={idx} className="drawer-bullet-line">
+                        • {item}
+                      </p>
+                    ))}
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
 
-              {/* 4. About the role and team */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">About the role and team</h3>
-                <p className="drawer-detail-text">
-                  Join a small product team building thoughtful tools for modern workplaces. You’ll own features from discovery through polished delivery.
-                </p>
-              </section>
+              {/* Section 6: Requirements and qualifications (literal • bullet character) */}
+              {Array.isArray(requirementsQualifications) && requirementsQualifications.length > 0 && (
+                <section className="drawer-section">
+                  <h3 className="drawer-heading">Requirements and qualifications</h3>
+                  <div className="drawer-bullet-lines">
+                    {requirementsQualifications.map((item, idx) => (
+                      <p key={idx} className="drawer-bullet-line">
+                        • {item}
+                      </p>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              {/* 5. Key responsibilities */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">Key responsibilities</h3>
-                <ul className="drawer-bullet-list">
-                  <li>Own features end to end, from discovery research to polished delivery</li>
-                  <li>Design and maintain components in the shared design system</li>
-                  <li>Prototype flows and test them with real users</li>
-                  <li>Work with engineers to ship and iterate on live features</li>
-                </ul>
-              </section>
-
-              {/* 6. Requirements and qualifications */}
-              <section className="drawer-detail-section">
-                <h3 className="drawer-detail-heading">Requirements and qualifications</h3>
-                <ul className="drawer-bullet-list">
-                  <li>1–3 years of product or UX design experience</li>
-                  <li>Strong Figma and prototyping skills</li>
-                  <li>Experience with user research and usability testing</li>
-                  <li>Clear communication in English; Hungarian is a plus</li>
-                </ul>
-              </section>
-
-              {/* 7. Benefits and compensation */}
-              <section className="drawer-detail-section" style={{ paddingBottom: 60 }}>
-                <h3 className="drawer-detail-heading">Benefits and compensation</h3>
-                <ul className="drawer-bullet-list">
-                  <li>Salary band: HUF 900K – 1.2M gross per month</li>
-                  <li>Hybrid: 3 days per week in the Budapest office</li>
-                  <li>Private health insurance and a wellness budget</li>
-                  <li>Laptop plus a learning and equipment allowance</li>
-                </ul>
-              </section>
+              {/* Section 7: Benefits and compensation (literal • bullet character, no divider after) */}
+              {Array.isArray(benefitsCompensation) && benefitsCompensation.length > 0 && (
+                <section className="drawer-section is-last">
+                  <h3 className="drawer-heading">Benefits and compensation</h3>
+                  <div className="drawer-bullet-lines">
+                    {benefitsCompensation.map((item, idx) => (
+                      <p key={idx} className="drawer-bullet-line">
+                        • {item}
+                      </p>
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           ) : null}
         </div>
 
-        {/* Bottom Floating Bar */}
-        <div className="match-drawer-bottom-bar">
+        {/* Footer: height 78px, 1px top border --line */}
+        <div className="match-drawer-footer">
           <button
             type="button"
-            className="drawer-save-later-btn"
-            onClick={() => {
-              setIsSaved(!isSaved);
-              onClose();
-            }}
+            className="drawer-footer-save-btn"
+            onClick={handleSaveClick}
           >
             {isSaved ? 'Saved in tracker' : 'Save for later'}
           </button>
+
           <button
             type="button"
-            className="drawer-primary-apply-btn"
+            className={`match-drawer-apply-btn ${hasApplied ? 'is-applied' : ''}`}
             onClick={handleApplyClick}
+            disabled={isApplying}
           >
-            Apply now →
+            {isApplying ? 'Applying...' : hasApplied ? 'Applied ✓' : 'Apply now →'}
           </button>
         </div>
       </div>

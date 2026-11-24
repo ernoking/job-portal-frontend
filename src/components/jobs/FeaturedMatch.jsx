@@ -29,7 +29,6 @@ export default function FeaturedMatch({
   const hasScore = typeof fit === 'number' && !Number.isNaN(fit);
   const hasWhyMatch = Array.isArray(whyMatch) && whyMatch.length > 0;
   const hasSkillsToBuild = Array.isArray(skillsToBuild) && skillsToBuild.length > 0;
-  const hasPanels = hasWhyMatch || hasSkillsToBuild;
 
   return (
     <article
@@ -38,7 +37,12 @@ export default function FeaturedMatch({
       data-testid="featured-match-card"
     >
       {/* 61px top gap positioning for eyebrow */}
-      <div className="featured-eyebrow">YOUR TOP MATCH</div>
+      <div className="featured-top-bar">
+        <span className="featured-eyebrow">YOUR TOP MATCH</span>
+        {isApplied && (
+          <span className="featured-top-applied-badge">✓ Applied</span>
+        )}
+      </div>
 
       {/* Main Identity Row */}
       <div className="featured-identity-row">
@@ -63,44 +67,60 @@ export default function FeaturedMatch({
         )}
       </div>
 
-      {/* Highlight Panels Row - rendered only if panels exist */}
-      {hasPanels && (
-        <div className="featured-panels-row">
-          {/* Why you match */}
-          {hasWhyMatch && (
-            <div className="featured-panel">
-              <h3 className="featured-panel-title">Why you match</h3>
-              <ul className="featured-panel-list">
-                {whyMatch.map((item, idx) => (
-                  <li key={idx} className="featured-panel-item why-match-item">
-                    <span className="panel-item-icon check-icon" aria-hidden="true">
-                      ✓
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Skills to build */}
-          {hasSkillsToBuild && (
-            <div className="featured-panel">
-              <h3 className="featured-panel-title">Skills to build</h3>
-              <ul className="featured-panel-list">
-                {skillsToBuild.map((item, idx) => (
-                  <li key={idx} className="featured-panel-item skills-item">
-                    <span className="panel-item-icon plus-icon" aria-hidden="true">
-                      +
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      {/* Highlight Panels Row - rendered only if panels exist, or honest empty state */}
+      <div className="featured-panels-row">
+        {/* Why you match */}
+        <div className="featured-panel">
+          <div className="panel-head-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h3 className="featured-panel-title" style={{ margin: 0 }}>Why you match</h3>
+            {!hasWhyMatch && (
+              <span className="filter-coming-soon-badge" style={{ fontSize: '10px' }}>CV profile required</span>
+            )}
+          </div>
+          {hasWhyMatch ? (
+            <ul className="featured-panel-list">
+              {whyMatch.map((item, idx) => (
+                <li key={idx} className="featured-panel-item why-match-item">
+                  <span className="panel-item-icon check-icon" aria-hidden="true">
+                    ✓
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ fontSize: '12px', color: '#667085', margin: 0, lineHeight: 1.4 }}>
+              Upload your CV to see your matching skills calculated by AI.
+            </p>
           )}
         </div>
-      )}
+
+        {/* Skills to build */}
+        <div className="featured-panel">
+          <div className="panel-head-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h3 className="featured-panel-title" style={{ margin: 0 }}>Skills to build</h3>
+            {!hasSkillsToBuild && (
+              <span className="filter-coming-soon-badge" style={{ fontSize: '10px' }}>CV profile required</span>
+            )}
+          </div>
+          {hasSkillsToBuild ? (
+            <ul className="featured-panel-list">
+              {skillsToBuild.map((item, idx) => (
+                <li key={idx} className="featured-panel-item skills-item">
+                  <span className="panel-item-icon plus-icon" aria-hidden="true">
+                    +
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ fontSize: '12px', color: '#667085', margin: 0, lineHeight: 1.4 }}>
+              Upload your CV to identify skill growth opportunities for this role.
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Footer Row */}
       <div className="featured-footer-row">
