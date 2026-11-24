@@ -379,7 +379,7 @@ export default function JobsFeed() {
   };
 
   return (
-    <div className="jobs-feed-page">
+    <div className={`jobs-feed-page ${jobParam ? 'drawer-is-open' : ''}`}>
       <AppNav activeTab="jobs" />
 
       <main className="jobs-feed-main">

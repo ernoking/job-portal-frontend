@@ -10,15 +10,33 @@
 }
 
 /* Eyebrow placed 61px below top of card (padding 32px + 29px margin) */
-.featured-eyebrow {
-  margin-top: 29px;
+.featured-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
   margin-bottom: 16px;
+}
+
+.featured-eyebrow {
+  margin: 0;
   font-family: var(--font-family);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--eyebrow);
   letter-spacing: 0.08em;
+}
+
+.featured-top-applied-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #344054;
+  background-color: #f2f4f7;
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Identity row */

@@ -149,9 +149,14 @@ export function normalizeJob(item) {
       ? match.missingSkills
       : (Array.isArray(item.skillsToBuild) ? item.skillsToBuild : []),
     description: item.description || '',
-    aboutRole: item.description || item.aboutRole || '',
+    aboutRole: item.aboutRole || item.description || '',
     requirements: item.requirements || '',
     url: item.url || '',
+    transferableSkills: item.transferableSkills || null,
+    keyResponsibilities: Array.isArray(item.keyResponsibilities) ? item.keyResponsibilities : null,
+    requirementsQualifications: Array.isArray(item.requirementsQualifications) ? item.requirementsQualifications : null,
+    benefitsCompensation: Array.isArray(item.benefitsCompensation) ? item.benefitsCompensation : null,
+    application: item.application || null,
   };
 }
 
@@ -300,17 +305,26 @@ export async function fetchJobs(filters) {
  * @returns {Promise<object|null>}
  */
 export async function getMatchDetail(jobId) {
-  if (USE_MOCK_JOBS) {
+  if (USE_MOCK_JOBS || jobId.startsWith('job-')) {
     const match = MOCK_JOBS.find((j) => j.id === jobId);
-    return match ? normalizeJob(match) : null;
+    if (match) return normalizeJob(match);
   }
 
-  const res = await request(`/jobs/${encodeURIComponent(jobId)}`);
-  if (!res || !res.job) return null;
+  try {
+    const res = await request(`/jobs/${encodeURIComponent(jobId)}`);
+    if (!res || !res.job) {
+      const fallback = MOCK_JOBS.find((j) => j.id === jobId);
+      return fallback ? normalizeJob(fallback) : null;
+    }
 
-  return normalizeJob({
-    ...res.job,
-    match: res.match,
-    application: res.application,
-  });
+    return normalizeJob({
+      ...res.job,
+      match: res.match,
+      application: res.application,
+    });
+  } catch (err) {
+    const fallback = MOCK_JOBS.find((j) => j.id === jobId);
+    if (fallback) return normalizeJob(fallback);
+    throw err;
+  }
 }

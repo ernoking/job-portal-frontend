@@ -26,7 +26,7 @@ export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5, st
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--lime)"
+          stroke="#C6F851"
           strokeWidth={actualStroke}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -35,8 +35,8 @@ export default function ScoreRing({ score = 92, size = 60, strokeWidth = 4.5, st
         />
       </svg>
       <div className="score-ring-content">
-        <span className="score-ring-number">{score}</span>
-        <span className="score-ring-unit">% fit</span>
+        <span className="score-ring-number">{score}%</span>
+        <span className="score-ring-unit">fit</span>
       </div>
     </div>
   );

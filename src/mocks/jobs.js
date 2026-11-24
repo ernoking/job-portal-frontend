@@ -13,16 +13,38 @@ export const MOCK_JOBS = [
     workType: 'Hybrid',
     employmentType: 'Full-time',
     fit: 94,
-    whyMatch: ['Figma & prototyping', 'User research', 'Design systems'],
-    whyMatchDetail: [
-      "Your hands-on Figma experience and research-led process map directly to the team's core product workflow.",
-      'Design systems expertise',
-      'Strong prototyping portfolio',
-      'Experience collaborating with engineers',
+    whyMatch: [
+      'Your hands-on Figma experience and research-led process map directly to the team’s core product workflow.',
+      'Design systems: your component-library work at Acme Studio maps to the team’s design system ownership.',
+      'Prototyping: your Figma prototypes cover the discovery-to-delivery workflow described in the role.',
+      'Collaboration: your day-to-day work with engineers matches the cross-functional squad setup.',
+    ],
+    transferableSkills:
+      'Your client-facing work and visual design background translate directly to product design: stakeholder communication, fast iteration and presenting design rationale.',
+    skillsToBuild: [
+      { name: 'Motion design', category: 'critical', impact: '+12%' },
+      { name: 'Product analytics', category: 'nice_to_have', impact: '+8%' },
     ],
     aboutRole:
-      "Join a small product team building thoughtful tools for modern workforces. You'll own features from discovery through polished delivery.",
-    skillsToBuild: ['Motion design', 'Product analytics'],
+      'Join a small product team building thoughtful tools for modern workplaces. You’ll own features from discovery through polished delivery.',
+    keyResponsibilities: [
+      'Own features end to end, from discovery research to polished delivery',
+      'Design and maintain components in the shared design system',
+      'Prototype flows and test them with real users',
+      'Work with engineers to ship and iterate on live features',
+    ],
+    requirementsQualifications: [
+      '1–3 years of product or UX design experience',
+      'Strong Figma and prototyping skills',
+      'Experience with user research and usability testing',
+      'Clear communication in English; Hungarian is a plus',
+    ],
+    benefitsCompensation: [
+      'Salary band: HUF 900k–1.2M gross per month',
+      'Hybrid: 3 days per week in the Budapest office',
+      'Private health insurance and a wellness budget',
+      'Laptop plus a learning and equipment allowance',
+    ],
   },
   {
     id: 'job-2',

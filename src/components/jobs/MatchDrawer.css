@@ -1,25 +1,35 @@
-.match-drawer-overlay {
+/* MatchDrawer.css: Exact pixel calibration matching View_full_match_1.png (Section 3 & 4) */
+
+/* Backdrop: Transparent full-viewport layer that catches clicks to close. No blur, no tint. */
+.match-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(16, 38, 27, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 1000;
+  background-color: transparent;
+  z-index: 100;
   display: flex;
   justify-content: flex-end;
 }
 
+/* Drawer frame: clamp(720px, 65.625vw, 1260px), square corners, shadow 0 0 80px rgba(20, 40, 30, 0.18) */
 .match-drawer-panel {
   position: relative;
-  width: 680px;
+  width: clamp(720px, 65.625vw, 1260px);
   max-width: 100vw;
-  height: 100%;
-  background-color: var(--surface, #FFFFFF);
-  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.12);
+  height: 100vh;
+  background-color: #FFFFFF;
+  border-radius: 0;
+  box-shadow: 0 0 80px rgba(20, 40, 30, 0.18);
   display: flex;
   flex-direction: column;
-  animation: drawerSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: drawerSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   box-sizing: border-box;
+  z-index: 101;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-drawer-panel {
+    animation: none;
+  }
 }
 
 @keyframes drawerSlideIn {
@@ -31,222 +41,378 @@
   }
 }
 
-/* Top bar matching Figma Screen 9 */
-.match-drawer-top-bar {
+/* 4.1 Header: height 96px, 1px bottom border --line, white */
+.match-drawer-header {
+  height: 96px;
+  min-height: 96px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--line, #DDE2DB);
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 24px 32px;
-  border-bottom: 1px solid var(--line, #E1E6E2);
-  background-color: #FFFFFF;
+  padding: 0 32px 0 33px;
+  position: relative;
+  box-sizing: border-box;
 }
 
-.match-drawer-close-circle {
-  width: 36px;
-  height: 36px;
+/* Close button: 38x38px circle, left 33, top 28, white, 1px --field-line border, × (14px, weight 600, ink) */
+.match-drawer-close-btn {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 1px solid #D5DDD7;
-  background: transparent;
+  border: 1px solid var(--field-line, #DDE2DB);
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: #15241D;
+  font-weight: 600;
+  color: var(--ink, #10261B);
   cursor: pointer;
   flex-shrink: 0;
+  margin-right: 19px; /* left 33 + 38 = 71; title at left 90 => 90 - 71 = 19px gap */
+  transition: background-color 0.15s ease;
 }
 
-.match-drawer-top-info {
+.match-drawer-close-btn:hover {
+  background-color: #F4F6F3;
+}
+
+/* Title block at left 90 */
+.match-drawer-title-block {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.match-drawer-header-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #15241D;
-  margin: 0 0 2px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.match-drawer-header-sub {
-  font-size: 12px;
-  color: #6B7A70;
+.match-drawer-title {
   margin: 0;
+  font-family: var(--font-family);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink, #10261B);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.match-drawer-top-actions {
+.match-drawer-subtitle {
+  margin: 3px 0 0 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted, #64706A);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Header actions: gap about 20px */
+.match-drawer-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
   flex-shrink: 0;
 }
 
-.drawer-header-apply-btn {
-  height: 38px;
-  padding: 0 16px;
-  background-color: #DDF86B;
-  color: #10261B;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+.match-drawer-ring-wrapper {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.drawer-bookmark-btn {
+/* Apply button: 125x46px, lime, radius 10, 14px weight 700, dark #17301F, lime glow shadow */
+.match-drawer-apply-btn {
+  width: 125px;
+  height: 46px;
+  background-color: var(--lime, #DCF862);
+  color: #17301F;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--lime-glow, rgba(205, 240, 70, 0.35));
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.match-drawer-apply-btn:hover:not(:disabled) {
+  background-color: #d2f24b;
+  transform: translateY(-1px);
+}
+
+.match-drawer-apply-btn.is-applied {
+  background-color: var(--lime-soft, #EEF9C7);
+  color: var(--lime-soft-text, #8A9A5E);
+  box-shadow: none;
+  cursor: default;
+}
+
+.match-drawer-apply-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* Bookmark button: 38x38px, radius 10, 1px --field-line border, filled dark icon */
+.match-drawer-bookmark-btn {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  border: 1px solid #D5DDD7;
-  background: transparent;
+  border: 1px solid var(--field-line, #DDE2DB);
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #15241D;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
 }
 
-.drawer-bookmark-btn.is-saved {
-  background-color: #F0F4EF;
+.match-drawer-bookmark-btn:hover {
+  background-color: #F4F6F3;
 }
 
-/* Scrollable Content */
-.match-drawer-content {
+.match-drawer-apply-error {
+  background-color: #FDEDED;
+  color: var(--error, #B3261E);
+  font-size: 12px;
+  padding: 8px 40px;
+  border-bottom: 1px solid #F5C2C7;
+}
+
+/* 4.2 Body: 40px left and right padding, thin scrollbar */
+.match-drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 32px;
+  padding: 0 40px;
+  scrollbar-width: thin;
+  scrollbar-color: #D5DAD2 transparent;
+  box-sizing: border-box;
 }
 
-.drawer-detail-section {
-  padding-bottom: 24px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid #EAEFEA;
+.match-drawer-body::-webkit-scrollbar {
+  width: 6px;
 }
 
-.drawer-detail-heading {
-  font-size: 15px;
-  font-weight: 700;
-  color: #15241D;
-  margin: 0 0 10px 0;
+.match-drawer-body::-webkit-scrollbar-thumb {
+  background-color: #D5DAD2;
+  border-radius: 3px;
 }
 
-.drawer-detail-text {
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: #384A3E;
-  margin: 0 0 12px 0;
+/* Sections & Dividers: 1px --line across content width */
+.drawer-section {
+  padding-top: 36px;
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--line, #DDE2DB);
 }
 
-.drawer-bullet-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.drawer-section.is-last {
+  border-bottom: none;
+  padding-bottom: 40px;
+}
+
+/* Section heading: 16px, weight 500, ink, tight tracking, 18px margin to content */
+.drawer-heading {
+  margin: 0 0 18px 0;
+  font-family: var(--font-family);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink, #10261B);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Section body text: 11px, #4F5B54 */
+.drawer-body-line {
+  margin: 0 0 8px 0;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 400;
+  color: #4F5B54;
+  line-height: 1.7;
+}
+
+.drawer-body-line:last-child {
+  margin-bottom: 0;
+}
+
+.drawer-plain-lines {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
-.drawer-bullet-list li {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #384A3E;
-  position: relative;
-  padding-left: 16px;
-}
-
-.drawer-bullet-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: #4B7F1D;
-  font-size: 16px;
-  line-height: 1;
-}
-
-/* Skills section badges */
+/* Skills to build: group label 9px uppercase tracking 0.08em --label */
 .drawer-skills-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.skills-sub-tag {
-  font-size: 10px;
+.drawer-group-label {
+  font-family: var(--font-family);
+  font-size: 9px;
   font-weight: 700;
-  color: #6B7A70;
-  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--label, #9AA39D);
 }
 
-.skill-chip-row {
+.drawer-chip-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.skill-badge-item {
-  background-color: #F0F4EF;
-  color: #15241D;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 12px;
+/* Chip: 27px tall, background --chip, radius 8, text 10px weight 500 --chip-text, padding 0 11px */
+.drawer-chip {
+  height: 27px;
+  padding: 0 11px;
+  background-color: var(--chip, #EEF1EC);
+  color: var(--chip-text, #3A4A40);
   border-radius: 8px;
+  font-family: var(--font-family);
+  font-size: 10px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.skill-boost-badge {
-  color: #4B7F1D;
-  font-size: 12px;
-  font-weight: 600;
+/* Boost text: 11px, weight 500, --eyebrow */
+.drawer-boost-text {
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--eyebrow, #4B7F1D);
 }
 
-/* Bottom Bar */
-.match-drawer-bottom-bar {
+/* Bullet lines for responsibilities, requirements, benefits: literal • character, pitch 25px */
+.drawer-bullet-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-bullet-line {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 400;
+  color: #4F5B54;
+  line-height: 1.6;
+}
+
+/* 4.5 Footer: height 78px, 1px top border --line, white, sticky */
+.match-drawer-footer {
+  height: 78px;
+  min-height: 78px;
+  background-color: #FFFFFF;
+  border-top: 1px solid var(--line, #DDE2DB);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 32px;
-  border-top: 1px solid var(--line, #E1E6E2);
-  background-color: #FFFFFF;
+  padding: 0 30px 0 40px;
+  box-sizing: border-box;
+  position: relative;
 }
 
-.drawer-save-later-btn {
+/* Save for later text button: 13px, weight 500, #4A5750 */
+.drawer-footer-save-btn {
   background: none;
   border: none;
+  font-family: var(--font-family);
   font-size: 13px;
-  font-weight: 600;
-  color: #15241D;
+  font-weight: 500;
+  color: #4A5750;
   cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
 }
 
-.drawer-primary-apply-btn {
-  height: 44px;
-  padding: 0 24px;
-  background-color: #DDF86B;
-  color: #10261B;
-  border: none;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(221, 248, 107, 0.4);
+.drawer-footer-save-btn:hover {
+  color: var(--ink, #10261B);
 }
 
-.drawer-primary-apply-btn:hover {
-  background-color: #d2f24b;
-}
-
+/* Loading & Error States */
 .match-drawer-loading {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 36px 0;
 }
 
-.match-drawer-skeleton-bar {
-  background-color: #EAEFEA;
-  border-radius: 8px;
+.match-drawer-skeleton {
+  background-color: var(--chip, #EEF1EC);
+  border-radius: 6px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.match-drawer-error {
+  padding: 36px 0;
+}
+
+.match-drawer-error-text {
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--error, #B3261E);
+  margin-bottom: 12px;
+}
+
+.match-drawer-retry-btn {
+  background: none;
+  border: none;
+  color: var(--link, #4B7F1D);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Responsive check (section 8.6: 375px mobile full screen) */
+@media (max-width: 640px) {
+  .match-drawer-panel {
+    width: 100vw;
+  }
+
+  .match-drawer-header {
+    height: auto;
+    padding: 16px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .match-drawer-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .match-drawer-body {
+    padding: 0 20px;
+  }
+
+  .match-drawer-footer {
+    padding: 0 20px;
+  }
 }
