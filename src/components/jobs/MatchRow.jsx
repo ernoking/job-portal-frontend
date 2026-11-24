@@ -62,7 +62,7 @@ export default function MatchRow({
         </div>
 
         <div className="match-row-right">
-          <span className="match-row-new-badge">New</span>
+          {!isApplied && <span className="match-row-new-badge">New</span>}
 
           {isApplied ? (
             <span className="match-row-applied-badge">✓ Applied</span>
