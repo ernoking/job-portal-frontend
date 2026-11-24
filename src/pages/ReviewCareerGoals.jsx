@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/profile/AppHeader';
 import ActionBar from '../components/profile/ActionBar';
-import { getPreferences, savePreferences } from '../api/preferences';
-import { getProfile, confirmProfile } from '../api/profile';
+import { savePreferences } from '../api/preferences';
+import { getReviewProfile, confirmProfile } from '../api/profile';
 import { clearDraft } from '../onboarding/draftStore';
 import './ReviewCareerGoals.css';
 
@@ -20,12 +20,13 @@ const CURRENCIES = ['HUF', 'EUR', 'USD'];
 export default function ReviewCareerGoals() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Career goals state
-  const [roles, setRoles] = useState(['Product Designer', 'UX Designer']);
+  const [roles, setRoles] = useState([]);
   const [newRoleInput, setNewRoleInput] = useState('');
-  const [workTypes, setWorkTypes] = useState(['Remote', 'Hybrid']);
-  const [seniority, setSeniority] = useState('Mid');
+  const [workTypes, setWorkTypes] = useState([]);
+  const [seniority, setSeniority] = useState('');
   const [salaryAmount, setSalaryAmount] = useState('');
   const [currency, setCurrency] = useState('HUF');
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
@@ -37,37 +38,22 @@ export default function ReviewCareerGoals() {
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getPreferences(), getProfile()])
-      .then(([prefs, profileData]) => {
+    getReviewProfile()
+      .then((profileData) => {
         if (!isMounted) return;
-        if (prefs) {
-          if (Array.isArray(prefs.roles) && prefs.roles.length > 0) {
-            setRoles(prefs.roles);
-          }
-          if (Array.isArray(prefs.workTypes) && prefs.workTypes.length > 0) {
-            setWorkTypes(prefs.workTypes);
-          }
-          if (prefs.seniority) {
-            setSeniority(prefs.seniority);
-          }
-          if (prefs.salary) {
-            setSalaryAmount(prefs.salary);
-          }
-        } else if (profileData?.career) {
-          if (profileData.career.role) {
-            setRoles([profileData.career.role]);
-          }
-          if (profileData.career.workType) {
-            setWorkTypes([profileData.career.workType]);
-          }
-          if (profileData.career.seniority) {
-            setSeniority(profileData.career.seniority);
-          }
-        }
+        const career = profileData?.career || {};
+        setRoles((career.targetRoles || '').split(',').map(value => value.trim()).filter(Boolean));
+        setWorkTypes((career.workType || '').split(',').map(value => value.trim()).filter(Boolean));
+        const level = (career.seniority || '').toLowerCase();
+        setSeniority(level.startsWith('mid') ? 'Mid' : level.startsWith('intern') ? 'Internship' :
+          SENIORITY_LEVELS.find(item => item.id.toLowerCase() === level)?.id || '');
         setLoading(false);
       })
-      .catch(() => {
-        if (isMounted) setLoading(false);
+      .catch((error) => {
+        if (isMounted) {
+          setLoadError(error?.message || 'Unable to load your profile review. Please analyse your CV again.');
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -109,7 +95,7 @@ export default function ReviewCareerGoals() {
   };
 
   const handleConfirm = async () => {
-    if (submitPending.current) return;
+    if (loading || loadError || submitPending.current) return;
     submitPending.current = true;
     setIsSubmitting(true);
     setSubmitError('');
@@ -124,12 +110,12 @@ export default function ReviewCareerGoals() {
       });
 
       // Confirm profile
-      const profile = await getProfile();
+      const profile = await getReviewProfile();
       const updatedProfile = {
         ...profile,
         career: {
           ...profile?.career,
-          role: roles.join(', '),
+          targetRoles: roles.join(', '),
           workType: workTypes.join(', '),
           seniority: seniority,
           salaryExpectation: salaryAmount ? `${salaryAmount} ${currency}` : '',
@@ -186,6 +172,8 @@ export default function ReviewCareerGoals() {
 
             {loading ? (
               <div className="review-goals-loading">Loading preferences...</div>
+            ) : loadError ? (
+              <div role="alert"><p>{loadError}</p><Link to="/upload">Analyse your CV again</Link></div>
             ) : (
               <div className="review-goals-form" data-node-id="205:267">
                 {/* Field 1: Desired job roles */}
@@ -316,6 +304,7 @@ export default function ReviewCareerGoals() {
           <div className="review-goals-action-bar-wrapper">
             <ActionBar
               onConfirm={handleConfirm}
+              isBlocked={loading || Boolean(loadError)}
               onCancel={() => clearDraft()}
               confirmLabel="Confirm profile and view matches"
               isSubmitting={isSubmitting}
