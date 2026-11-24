@@ -20,12 +20,13 @@ const CURRENCIES = ['HUF', 'EUR', 'USD'];
 export default function ReviewCareerGoals() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Career goals state
-  const [roles, setRoles] = useState(['Product Designer', 'UX Designer']);
+  const [roles, setRoles] = useState([]);
   const [newRoleInput, setNewRoleInput] = useState('');
-  const [workTypes, setWorkTypes] = useState(['Remote', 'Hybrid']);
-  const [seniority, setSeniority] = useState('Mid');
+  const [workTypes, setWorkTypes] = useState([]);
+  const [seniority, setSeniority] = useState('');
   const [salaryAmount, setSalaryAmount] = useState('');
   const [currency, setCurrency] = useState('HUF');
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
@@ -48,8 +49,11 @@ export default function ReviewCareerGoals() {
           SENIORITY_LEVELS.find(item => item.id.toLowerCase() === level)?.id || '');
         setLoading(false);
       })
-      .catch(() => {
-        if (isMounted) setLoading(false);
+      .catch((error) => {
+        if (isMounted) {
+          setLoadError(error?.message || 'Unable to load your profile review. Please analyse your CV again.');
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -91,7 +95,7 @@ export default function ReviewCareerGoals() {
   };
 
   const handleConfirm = async () => {
-    if (submitPending.current) return;
+    if (loading || loadError || submitPending.current) return;
     submitPending.current = true;
     setIsSubmitting(true);
     setSubmitError('');
@@ -168,6 +172,8 @@ export default function ReviewCareerGoals() {
 
             {loading ? (
               <div className="review-goals-loading">Loading preferences...</div>
+            ) : loadError ? (
+              <div role="alert"><p>{loadError}</p><Link to="/upload">Analyse your CV again</Link></div>
             ) : (
               <div className="review-goals-form" data-node-id="205:267">
                 {/* Field 1: Desired job roles */}
@@ -298,6 +304,7 @@ export default function ReviewCareerGoals() {
           <div className="review-goals-action-bar-wrapper">
             <ActionBar
               onConfirm={handleConfirm}
+              isBlocked={loading || Boolean(loadError)}
               onCancel={() => clearDraft()}
               confirmLabel="Confirm profile and view matches"
               isSubmitting={isSubmitting}

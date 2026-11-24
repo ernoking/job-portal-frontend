@@ -91,9 +91,9 @@ export default function ResumeUpload() {
         }
       }
       if (!cvId && !USE_MOCK_API) throw new Error('The CV upload could not be confirmed. Please try again.');
-      if (cvId) await generateCvProfile(cvId, { signal: controller.signal });
+      const preview = cvId ? await generateCvProfile(cvId, { signal: controller.signal }) : null;
       if (controller.signal.aborted) return;
-      navigate('/preferences');
+      navigate(preview?.baseProfile ? '/profile/review' : '/preferences');
     } catch (err) {
       if (!controller.signal.aborted) {
         setUploadError(err?.message || 'Failed to upload CV. Please try again.');

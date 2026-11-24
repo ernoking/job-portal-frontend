@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '../components/profile/AppHeader';
 import ProfileSection from '../components/profile/ProfileSection';
+import ProfileRefreshSelection from '../components/profile/ProfileRefreshSelection';
+import { readField, writeField } from '../onboarding/profileRefresh.js';
 import InfoGrid from '../components/profile/InfoGrid';
 import AccordionRow from '../components/profile/AccordionRow';
 import SkillChip from '../components/profile/SkillChip';
@@ -9,7 +11,7 @@ import LanguageRow from '../components/profile/LanguageRow';
 import ActionBar from '../components/profile/ActionBar';
 import VerifyPhoneModal from '../components/profile/VerifyPhoneModal';
 import { getReviewProfile } from '../api/profile';
-import { clearDraft, setDraft } from '../onboarding/draftStore';
+import { clearDraft, setDraft, getDraft } from '../onboarding/draftStore';
 import './ProfileReview.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,6 +24,8 @@ export default function ProfileReview() {
 
   // Profile data in local state
   const [profile, setProfile] = useState(null);
+  const [reviewPreview, setReviewPreview] = useState(null);
+  const [refreshFields, setRefreshFields] = useState([]);
 
   // Editing state for Section 1 (Personal)
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -70,6 +74,8 @@ export default function ProfileReview() {
             setParseError("We couldn't read your CV. Please upload it again.");
           } else {
             setProfile(data);
+            setReviewPreview(getDraft().reviewPreview || null);
+            setRefreshFields(getDraft().refreshFields || []);
           }
           setLoading(false);
         }
@@ -85,6 +91,17 @@ export default function ProfileReview() {
       isMounted = false;
     };
   }, []);
+
+  const handleRefreshToggle = (field) => {
+    if (isAnyEditOpen || !reviewPreview?.baseProfile) return;
+    const selected = refreshFields.includes(field);
+    const nextFields = selected ? refreshFields.filter(value => value !== field) : [...refreshFields, field];
+    const source = selected ? reviewPreview.baseProfile : reviewPreview.generatedProfile;
+    const nextProfile = writeField(structuredClone(profile), field, readField(source, field));
+    setRefreshFields(nextFields);
+    setProfile(nextProfile);
+    setDraft({ refreshFields: nextFields, profile: nextProfile });
+  };
 
   // Personal section handlers
   const handleStartEditPersonal = () => {
@@ -371,6 +388,8 @@ export default function ProfileReview() {
               </div>
             ) : (
               <>
+                <ProfileRefreshSelection preview={reviewPreview} fields={refreshFields}
+                  onToggle={handleRefreshToggle} disabled={isAnyEditOpen || isSubmitting} />
                 {/* Section 1: Personal information */}
                 <ProfileSection
                   id="personal"

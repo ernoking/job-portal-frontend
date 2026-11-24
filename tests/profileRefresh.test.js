@@ -27,7 +27,9 @@ test('onboarding uses preview APIs, preserves corrections through goals and only
     assert.equal(calls[0].url,'/api/cv/new-cv/profile/preview');
     assert.deepEqual(getDraft().refreshFields,[]);
     assert.equal((await getReviewProfile()).personal.name,'Old');
-    assert.equal((await getProfile()).personal.name,'Old');
+    setDraft({preferences:{roles:['Unconfirmed role']}});
+    assert.equal((await getProfile()).career.targetRoles,'Engineer');
+    assert.equal((await getReviewProfile()).career.targetRoles,'Engineer');
     const edited=mergeReview(preview,['skills']);edited.personal.name='Corrected';
     setDraft({refreshFields:['skills'],profile:edited});
     assert.equal((await getReviewProfile()).personal.name,'Corrected');

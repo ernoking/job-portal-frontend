@@ -82,3 +82,19 @@ request ID as a log field for joining with backend `reqId`.
 Generate a synthetic schema-v2 payload for receiver testing with
 `node tests/make-traffic-fixture.mjs --requests`. Omitting `--requests` generates
 the existing v1 fixture. Run `npm run test:telemetry` for the regression suite.
+
+### CV replacement field selection (AJSP-56 / AJSP-57)
+
+On replacement, the profile review page compares saved and new CV values. Check individual
+fields to refresh them; unchecked values are preserved. Collections refresh as a whole.
+Open section edits must be saved/cancelled before changing selection. Review corrections
+and selection survive navigation/reload in the existing session draft. Nothing is written
+to the saved profile until final confirmation on the career-goals screen.
+
+Requires backend PR #28 and its `selective_profile_refresh` migration before frontend deployment.
+No new environment variables. Existing job application/tailoring pages continue reading the
+confirmed profile, not the unconfirmed preview. Invalid/expired/stale reviews show a recoverable
+error and must be analysed again; they never fall back to the legacy save endpoint.
+
+`node --test tests/profileRefresh.test.js` covers merge selection, confirmation payloads,
+confirmed-profile isolation and expired reviews.

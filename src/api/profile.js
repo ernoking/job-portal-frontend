@@ -38,7 +38,7 @@ export async function getProfile() {
 
   const { profile, cvId } = await request('/api/profile');
   setDraft({ cvId });
-  return applyPreferencesToProfile(profile, getDraft().preferences);
+  return profile;
 }
 
 export async function confirmProfile(profile) {
@@ -70,7 +70,8 @@ export async function getReviewProfile() {
   if (USE_MOCK_API || !draft.previewId) return getProfile();
   const preview = await request(`/api/profile/previews/${encodeURIComponent(draft.previewId)}`);
   setDraft({ reviewPreview: preview, cvId: preview.cvId });
-  return draft.profile || applyPreferencesToProfile(mergeReview(preview, draft.refreshFields || []), draft.preferences);
+  const merged = mergeReview(preview, draft.refreshFields || []);
+  return draft.profile || (preview.baseProfile ? merged : applyPreferencesToProfile(merged, draft.preferences));
 }
 
 export async function generateCvProfile(cvId, { signal } = {}) {
