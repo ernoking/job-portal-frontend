@@ -82,3 +82,16 @@ request ID as a log field for joining with backend `reqId`.
 Generate a synthetic schema-v2 payload for receiver testing with
 `node tests/make-traffic-fixture.mjs --requests`. Omitting `--requests` generates
 the existing v1 fixture. Run `npm run test:telemetry` for the regression suite.
+
+### Work-arrangement filters
+
+The jobs feed's existing Remote, Hybrid and On-site controls use backend `workType`
+filtering before pagination. Every initial page, later page and retry keeps the same
+selection. On-site maps to `on_site`; employment type remains separate. Jobs without
+known arrangement metadata appear when no arrangement is selected, but do not pass an
+explicit Remote/Hybrid/On-site selection. Results retain the existing keyword, location
+and minimum-match filters. Reset restores the existing defaults, including Budapest.
+
+Requires backend PR #27 and its `job_work_arrangement` migration, followed by a normal
+job import to populate the field. No new frontend environment variables are needed.
+Run `node --test tests/jobWorkTypes.test.js` for API pagination/filter regression checks.

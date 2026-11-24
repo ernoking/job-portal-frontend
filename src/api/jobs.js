@@ -1,6 +1,17 @@
-import { request } from './http';
-import { MOCK_JOBS } from '../mocks/jobs';
+import { request } from './http.js';
+import { MOCK_JOBS } from '../mocks/jobs.js';
 import { flattenJobPages } from './jobPages.js';
+
+const WORK_TYPES = { remote: 'remote', hybrid: 'hybrid', on_site: 'on_site', 'on-site': 'on_site', unknown: 'unknown' };
+export function canonicalWorkType(value) {
+  return WORK_TYPES[String(value || '').toLowerCase()] || 'unknown';
+}
+function jobsPath(page, filters = {}) {
+  const params = new URLSearchParams({ sort: 'best_fit', page: String(page), pageSize: '50' });
+  const types = [...new Set((filters.workTypes || []).map(canonicalWorkType))];
+  if (types.length) params.set('workType', types.join(','));
+  return `/jobs?${params}`;
+}
 
 /**
  * Public configuration flag for Jobs endpoints.
@@ -8,7 +19,7 @@ import { flattenJobPages } from './jobPages.js';
  * By default (unset or anything else), the helpers call the real backend API
  * at GET /api/jobs and GET /api/jobs/:id.
  */
-export const USE_MOCK_JOBS = import.meta.env.VITE_USE_MOCK_JOBS === 'true';
+export const USE_MOCK_JOBS = import.meta.env?.VITE_USE_MOCK_JOBS === 'true';
 
 /**
  * Maximum number of pages to retrieve sequentially during feed hydration (250 jobs max).
@@ -30,7 +41,7 @@ export const MAX_PAGES_TO_FETCH = 5;
  *   nextPageToLoad: number|null
  * }>}
  */
-export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MAX_PAGES_TO_FETCH) {
+export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MAX_PAGES_TO_FETCH, filters = {}) {
   const pages = {};
   const loadedPages = [];
   const failedPages = [];
@@ -39,7 +50,7 @@ export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MA
 
   for (let p = startPage; p <= endPage; p += 1) {
     try {
-      const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+      const res = await request(jobsPath(p, filters));
       pages[p] = (Array.isArray(res?.jobs) ? res.jobs : []).map(normalizeJob);
       loadedPages.push(p);
     } catch (err) {
@@ -68,14 +79,14 @@ export async function fetchMorePages(startPage, totalPages, maxPagesToFetch = MA
  *   stillFailedPages: Array<number>
  * }>}
  */
-export async function retryFailedPages(pagesToRetry = []) {
+export async function retryFailedPages(pagesToRetry = [], filters = {}) {
   const pages = {};
   const recoveredPages = [];
   const stillFailedPages = [];
 
   for (const p of pagesToRetry) {
     try {
-      const res = await request(`/jobs?sort=best_fit&page=${p}&pageSize=50`);
+      const res = await request(jobsPath(p, filters));
       pages[p] = (Array.isArray(res?.jobs) ? res.jobs : []).map(normalizeJob);
       recoveredPages.push(p);
     } catch (err) {
@@ -136,7 +147,7 @@ export function normalizeJob(item) {
     companyInitial: item.company?.[0]?.toUpperCase() || '',
     location: item.location || '',
     jobType: item.jobType || '',
-    workType: item.workType || '',
+    workType: { remote: 'Remote', hybrid: 'Hybrid', on_site: 'On-site', unknown: '' }[canonicalWorkType(item.workType)],
     employmentType,
     seniority,
     postedAt: item.postedAt || '',
@@ -157,8 +168,8 @@ export function normalizeJob(item) {
 
 /**
  * Filters a list of normalized jobs client-side according to active filters.
- * Note: The backend GET /api/jobs only accepts sort, page, and pageSize query parameters;
- * keywords, location, workType, and minMatch are filtered client-side.
+ * Work arrangement is also sent to the backend before pagination. Keywords, location
+ * and minimum match retain the existing client-side behavior.
  * A role without a fit value is NOT excluded by the minimum-match filter.
  *
  * @param {Array<object>} jobs
@@ -186,17 +197,10 @@ export function filterJobs(jobs, filters) {
       }
     }
 
-    // Work type filter (case-insensitive comparison against job.workType)
-    // Only apply workType filtering when active filters are present and the job defines a workType.
-    // When job.workType is missing/empty, bypass filtering so real API jobs are never rejected.
-    if (Array.isArray(workTypes) && workTypes.length > 0 && job.workType) {
-      const jobWorkType = job.workType.toLowerCase();
-      const matchesWorkType = workTypes.some(
-        (wt) => wt.toLowerCase() === jobWorkType
-      );
-      if (!matchesWorkType) {
-        return false;
-      }
+    // Unknown/missing metadata must not pass an explicit arrangement selection.
+    if (Array.isArray(workTypes) && workTypes.length > 0 &&
+        !workTypes.some((type) => canonicalWorkType(type) === canonicalWorkType(job.workType))) {
+      return false;
     }
 
     // Location filter (case-insensitive substring match)
@@ -262,10 +266,10 @@ export async function getMatches(filters) {
   }
 
   // Backend supports sort=best_fit, page, and pageSize up to 50
-  const page1Data = await request('/jobs?sort=best_fit&page=1&pageSize=50');
+  const page1Data = await request(jobsPath(1, filters));
   const firstPage = (Array.isArray(page1Data?.jobs) ? page1Data.jobs : []).map(normalizeJob);
   const totalPages = typeof page1Data?.totalPages === 'number' ? page1Data.totalPages : 1;
-  const rest = await fetchMorePages(2, totalPages, MAX_PAGES_TO_FETCH - 1);
+  const rest = await fetchMorePages(2, totalPages, MAX_PAGES_TO_FETCH - 1, filters);
   const pages = { 1: firstPage, ...rest.pages };
   const normalized = flattenJobPages(pages);
   const filtered = filters ? filterJobs(normalized, filters) : normalized;
