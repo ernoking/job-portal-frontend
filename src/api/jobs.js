@@ -234,17 +234,24 @@ export function normalizeJob(item) {
 }
 
 /**
- * Filters a list of normalized jobs client-side according to active filters.
- * Work arrangement is also sent to the backend before pagination. Keywords, location
- * and minimum match retain the existing client-side behavior.
- * A role without a fit value is NOT excluded by the minimum-match filter.
+ * Filters and ranks a list of normalized jobs client-side according to active filters.
+ * When minMatch > 0, roles must have a calculated numeric fit score >= minMatch.
+ * When minMatch === 0, unscored roles are also included.
+ * Results are sorted by fit score descending so the highest matching job appears first.
  *
  * @param {Array<object>} jobs
  * @param {object} [filters]
  * @returns {Array<object>}
  */
 export function filterJobs(jobs, filters) {
-  if (!filters || !Array.isArray(jobs)) return jobs || [];
+  if (!Array.isArray(jobs)) return [];
+  if (!filters) {
+    return [...jobs].sort((a, b) => {
+      const scoreA = typeof a.fit === 'number' ? a.fit : -1;
+      const scoreB = typeof b.fit === 'number' ? b.fit : -1;
+      return scoreB - scoreA;
+    });
+  }
 
   const {
     keywords = '',
@@ -257,10 +264,10 @@ export function filterJobs(jobs, filters) {
   const kw = keywords.trim().toLowerCase();
   const loc = location.trim().toLowerCase();
 
-  return jobs.filter((job) => {
-    // Minimum match filter: roles without a numeric fit value are not excluded
-    if (typeof minMatch === 'number' && typeof job.fit === 'number') {
-      if (job.fit < minMatch) {
+  const filtered = jobs.filter((job) => {
+    // Minimum match filter: when minMatch > 0, require a calculated score >= minMatch.
+    if (typeof minMatch === 'number' && minMatch > 0) {
+      if (typeof job.fit !== 'number' || job.fit < minMatch) {
         return false;
       }
     }
@@ -304,6 +311,13 @@ export function filterJobs(jobs, filters) {
 
     return true;
   });
+
+  // Rank jobs by fit score descending: highest score first, unscored (null) at the end
+  return filtered.sort((a, b) => {
+    const scoreA = typeof a.fit === 'number' ? a.fit : -1;
+    const scoreB = typeof b.fit === 'number' ? b.fit : -1;
+    return scoreB - scoreA;
+  });
 }
 
 /**
@@ -331,7 +345,7 @@ export function filterJobs(jobs, filters) {
 export async function getMatches(filters) {
   if (USE_MOCK_JOBS) {
     const normalized = MOCK_JOBS.map(normalizeJob);
-    const filtered = filters ? filterJobs(normalized, filters) : normalized;
+    const filtered = filterJobs(normalized, filters);
     return {
       jobs: filtered,
       pages: { 1: normalized },
@@ -351,7 +365,7 @@ export async function getMatches(filters) {
   const rest = await fetchMorePages(2, totalPages, MAX_PAGES_TO_FETCH - 1, filters);
   const pages = { 1: firstPage, ...rest.pages };
   const normalized = flattenJobPages(pages);
-  const filtered = filters ? filterJobs(normalized, filters) : normalized;
+  const filtered = filterJobs(normalized, filters);
 
   return {
     jobs: filtered,

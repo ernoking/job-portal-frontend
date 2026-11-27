@@ -56,3 +56,36 @@ test('all catalogue pages, later loads and failed-page retries retain the server
     assert.ok(urls.every(url => !url.searchParams.has('workType') && !url.searchParams.has('seniority')));
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test('filterJobs ranks jobs by fit score descending and filters unscored roles when minMatch > 0', () => {
+  const jobs = [
+    { id: 'job-unscored', title: 'Consultant', fit: null },
+    { id: 'job-60', title: 'Developer', fit: 60 },
+    { id: 'job-92', title: 'Architect', fit: 92 },
+    { id: 'job-84', title: 'Lead', fit: 84 },
+  ];
+
+  // Default / 0% minMatch: ranked by score descending, unscored at end
+  const defaultRanked = filterJobs(jobs, { minMatch: 0 });
+  assert.deepEqual(defaultRanked.map(j => j.id), ['job-92', 'job-84', 'job-60', 'job-unscored']);
+  assert.equal(defaultRanked[0].id, 'job-92'); // Highest match is Top Match
+
+  // Without filters argument: also ranked by score descending
+  const noFiltersRanked = filterJobs(jobs);
+  assert.deepEqual(noFiltersRanked.map(j => j.id), ['job-92', 'job-84', 'job-60', 'job-unscored']);
+
+  // 80% and above: excludes job-60 and job-unscored
+  const filtered80 = filterJobs(jobs, { minMatch: 80 });
+  assert.deepEqual(filtered80.map(j => j.id), ['job-92', 'job-84']);
+  assert.equal(filtered80[0].id, 'job-92');
+
+  // 50% and above: includes 60%, 84%, 92% sorted descending, excludes unscored
+  const filtered50 = filterJobs(jobs, { minMatch: 50 });
+  assert.deepEqual(filtered50.map(j => j.id), ['job-92', 'job-84', 'job-60']);
+  assert.equal(filtered50[0].id, 'job-92');
+
+  // 95% and above: no jobs qualify
+  const filtered95 = filterJobs(jobs, { minMatch: 95 });
+  assert.deepEqual(filtered95, []);
+});
+
