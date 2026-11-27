@@ -72,14 +72,28 @@ export default function PasswordRecovery({ recovery, resetting = false }) {
       leftFooterLabel="PRIVATE BY DESIGN"
       leftFooterRight="Your CV and account data are protected."
       pillText="SECURE RECOVERY"
-      h1Content={resetting ? 'Set a new password' : 'Forgot your password?'}
-      subContent={resetting ? 'Choose a password you haven’t used before.' : 'Enter your account email to receive a reset link.'}
+      h1Content={
+        done
+          ? (resetting ? 'Password updated' : 'Check your email')
+          : invalid
+          ? 'Link expired or invalid'
+          : (resetting ? 'Set a new password' : 'Forgot your password?')
+      }
+      subContent={
+        done
+          ? (resetting ? 'Your password has been changed successfully. You can now log in.' : 'We sent instructions to reset your password.')
+          : invalid
+          ? 'This reset link is missing, invalid or expired. Request a new link to continue.'
+          : (resetting ? 'Choose a password you haven’t used before.' : 'Enter your account email to receive a reset link.')
+      }
     >
       {done ? <div className="recovery-result" role="status">
-        <p>{message}</p>
-        {!resetting && <p>The email may take a few minutes. If it doesn’t arrive, check spam or try again later.</p>}
+        <div className="recovery-result-box">
+          <p>{message}</p>
+        </div>
+        {!resetting && <p className="recovery-subtext">The email may take a few minutes. If it doesn’t arrive, check spam or try again later.</p>}
         <Link className="switch-link" to="/login">Back to log in</Link>
-      </div> : invalid ? <div className="recovery-result" role="alert">
+      </div> : invalid ? <div className="recovery-result is-error" role="alert">
         <p>This reset link is missing, invalid or expired. Request a new link to continue.</p>
         <Link className="switch-link" to="/forgot-password">Request a new reset link</Link>
       </div> : <form className="login-form recovery-form" onSubmit={submit} noValidate aria-busy={busy}>
