@@ -425,3 +425,61 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Keep the designed cards inside the viewport between tablet and desktop sizes. */
+.onboarding-step-1 .onboarding-block {
+  max-width: 100%;
+}
+.onboarding-step-1 .onboarding-white-card {
+  min-width: 0;
+}
+.resume-right-header {
+  height: auto;
+  min-height: 36px;
+}
+.resume-right-subtitle {
+  line-height: 1.4;
+}
+.resume-error-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.resume-file-delete-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+.resume-file-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (min-width: 901px) and (max-width: 1083px) {
+  .onboarding-step-1 .dark-panel {
+    width: 38%;
+    padding-inline: 24px;
+  }
+  .onboarding-step-1 .resume-left-content {
+    width: 100%;
+  }
+  .onboarding-step-1 .resume-left-heading {
+    font-size: 42px;
+    line-height: 1.1;
+  }
+  .onboarding-step-1 .onboarding-white-card {
+    flex: 1;
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .resume-file-card {
+    padding: 12px;
+    gap: 10px;
+  }
+  .resume-file-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .resume-file-badge {
+    white-space: normal;
+  }
+}

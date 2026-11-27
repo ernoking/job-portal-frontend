@@ -134,3 +134,19 @@
     min-height: 44px;
   }
 }
+
+.dropzone {
+  max-width: 100%;
+}
+.dropzone-text-group {
+  max-width: 100%;
+  padding-inline: 12px;
+  box-sizing: border-box;
+}
+@media (max-width: 600px) {
+  .dropzone-title {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
