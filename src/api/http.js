@@ -169,7 +169,7 @@ async function performRequest(path, options) {
       );
     }
 
-    const isLoginOrRegister = url.includes('/auth/login') || url.includes('/auth/register');
+    const isLoginOrRegister = /^\/api\/auth\/(login|register|forgot-password|reset-password)$/.test(url);
     if (res.status === 401 && !isLoginOrRegister) {
       handleUnauthorized();
       const message = data?.error?.message || 'Session expired or invalid. Please log in again.';

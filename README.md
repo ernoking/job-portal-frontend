@@ -111,3 +111,7 @@ and minimum-match filters. Reset restores the existing defaults, including Budap
 Requires backend PR #27 and its `job_work_arrangement` migration, followed by a normal
 job import to populate the field. No new frontend environment variables are needed.
 Run `node --test tests/jobWorkTypes.test.js` for API pagination/filter regression checks.
+
+### Password recovery
+
+The login page links to `/forgot-password`; Supabase recovery emails return to `/reset-password`. These screens reuse the auth layout. Deploy the backend recovery endpoints first and allow the exact frontend callback in Supabase Auth URL Configuration. General-user email delivery requires configured SMTP. See the backend `docs/password-recovery.md` for setup and API behavior. Recovery tokens stay in memory and are removed from the URL before monitoring starts; reloading requires reopening the email link.

@@ -72,3 +72,15 @@ export async function deleteAccount(password, token) {
     body: { password },
   });
 }
+
+// Recovery never creates a normal application session in browser storage.
+export function requestPasswordReset(email) {
+  return request('/api/auth/forgot-password', { method: 'POST', body: { email } });
+}
+
+export function resetPassword({ accessToken, refreshToken, password }) {
+  return request('/api/auth/reset-password', {
+    method: 'POST', headers: { Authorization: `Bearer ${accessToken}` },
+    body: { refreshToken, password },
+  });
+}

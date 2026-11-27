@@ -194,9 +194,9 @@ export default function Login() {
             >
               Remember me
             </Checkbox>
-            <a href="#forgot" className="forgot-password-link">
+            <Link to="/forgot-password" className="forgot-password-link">
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <div className="login-submit-wrap">
