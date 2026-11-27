@@ -8,7 +8,7 @@ import { USE_MOCK_API } from '../api/config';
 import { generateCvProfile } from '../api/profile';
 import { getDraft, setDraft } from '../onboarding/draftStore';
 import { getCvDownloadUrl, listCvFiles, uploadCv } from '../api/cv';
-import { parseCvFileInBrowser } from '../utils/cvParser';
+import { uploadErrorMessage } from '../utils/uploadErrorMessage';
 import './ResumeUpload.css';
 
 function formatBytes(bytes) {
@@ -54,16 +54,15 @@ export default function ResumeUpload() {
   const handleFileSelect = (file, error) => {
     if (analysisRequest.current) return;
     setSelectedFile(file);
-    if (file) {
-      setUploadedCvId(null);
-      setDraft({ cvId: null, uploadedFileName: file.name });
-    }
+    setUploadedCvId(null);
+    setDraft({ cvId: null, previewId: null, reviewPreview: null, profile: null,
+      extractedCvProfile: null, uploadedFileName: file?.name || '' });
     setFileError(error);
     setUploadError('');
   };
 
   const handleStartAnalysis = async () => {
-    if ((!selectedFile && !uploadedCvId) || analysisRequest.current) return;
+    if (fileError || (!selectedFile && !uploadedCvId) || analysisRequest.current) return;
 
     const controller = new AbortController();
     analysisRequest.current = controller;
@@ -71,8 +70,9 @@ export default function ResumeUpload() {
     setUploadError('');
 
     try {
-      if (selectedFile) {
-        // Parse the actual CV file in browser to extract real candidate name, email, phone, and skills
+      if (selectedFile && USE_MOCK_API) {
+        // Live uploads are validated and parsed by the backend; local fixtures are mock-only.
+        const { parseCvFileInBrowser } = await import('../utils/cvParser');
         const parsedProfile = await parseCvFileInBrowser(selectedFile);
         if (parsedProfile) {
           setDraft({ extractedCvProfile: parsedProfile, uploadedFileName: selectedFile.name });
@@ -96,7 +96,7 @@ export default function ResumeUpload() {
       navigate(preview?.baseProfile ? '/profile/review' : '/preferences');
     } catch (err) {
       if (!controller.signal.aborted) {
-        setUploadError(err?.message || 'Failed to upload CV. Please try again.');
+        setUploadError(uploadErrorMessage(err));
       }
     } finally {
       analysisRequest.current = null;
@@ -158,19 +158,16 @@ export default function ResumeUpload() {
           <div className="resume-file-details">
             <div className="resume-file-title-row">
               <span className="resume-file-name">{selectedFile.name}</span>
-              <span className="resume-file-badge">✓ Uploaded successfully</span>
+              <span className="resume-file-badge">{uploadedCvId ? '✓ Uploaded successfully' : 'Ready to upload'}</span>
             </div>
             <span className="resume-file-size">{formatBytes(selectedFile.size)}</span>
           </div>
           <button
             type="button"
             className="resume-file-delete-btn"
-            onClick={() => {
-              setSelectedFile(null);
-              setFileError(null);
-              setUploadError('');
-            }}
-            aria-label="Remove uploaded file"
+            disabled={isAnalysing}
+            onClick={() => handleFileSelect(null, null)}
+            aria-label="Remove selected file"
             data-testid="remove-file-btn"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -205,9 +202,11 @@ export default function ResumeUpload() {
               value={uploadedCvId ?? ''}
               onChange={(event) => {
                 const cvId = event.target.value || null;
+                if (analysisRequest.current) return;
                 setUploadedCvId(cvId);
                 setSelectedFile(null);
-                setDraft({ cvId });
+                setFileError(null);
+                setDraft({ cvId, previewId: null, reviewPreview: null, profile: null, extractedCvProfile: null });
                 setUploadError('');
               }}
             >
@@ -242,8 +241,8 @@ export default function ResumeUpload() {
       <button
         type="button"
         className={`resume-analyse-btn ${(selectedFile || uploadedCvId) && !isAnalysing ? 'is-enabled' : 'is-disabled'}`}
-        disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
-        aria-disabled={(!selectedFile && !uploadedCvId) || isAnalysing}
+        disabled={Boolean(fileError) || (!selectedFile && !uploadedCvId) || isAnalysing}
+        aria-disabled={Boolean(fileError) || (!selectedFile && !uploadedCvId) || isAnalysing}
         onClick={handleStartAnalysis}
         data-testid="start-analysing-btn"
       >

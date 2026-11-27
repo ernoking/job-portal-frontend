@@ -49,7 +49,9 @@ export default function DropZone({ file, onFileSelect, errorMessage, disabled = 
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      validateAndSelect(e.target.files[0]);
+      const file = e.target.files[0];
+      e.target.value = ''; // Permit choosing the same file again after a validation failure.
+      validateAndSelect(file);
     }
   };
 
@@ -80,6 +82,7 @@ export default function DropZone({ file, onFileSelect, errorMessage, disabled = 
       role="region"
       aria-label="Resume upload drop zone"
       aria-describedby="dropzone-format-text"
+      aria-invalid={Boolean(errorMessage)}
       onKeyDown={handleKeyDown}
       data-testid="drop-zone"
     >
@@ -117,11 +120,7 @@ export default function DropZone({ file, onFileSelect, errorMessage, disabled = 
         <p id="dropzone-format-text" className="dropzone-subtitle">
           {file ? formatBytes(file.size) : 'Supports PDF, DOCX (Max 5MB)'}
         </p>
-        {errorMessage && (
-          <p className="dropzone-error-msg" role="alert" data-testid="dropzone-error" style={{ display: 'none' }}>
-            {errorMessage}
-          </p>
-        )}
+
       </div>
 
       <button
