@@ -24,7 +24,7 @@ const INITIAL_FILTERS = {
   location: 'Budapest',
   workTypes: USE_MOCK_JOBS ? ['Remote', 'Hybrid'] : [],
   seniorityLevels: [],
-  minMatch: 80,
+  minMatch: 0,
 };
 
 export default function JobsFeed() {

@@ -12,7 +12,7 @@ export default function FilterSidebar({
     location = 'Budapest',
     workTypes = ['Remote', 'Hybrid'],
     seniorityLevels = [],
-    minMatch = 80,
+    minMatch = 0,
   } = filters;
 
   const handleKeywordChange = (e) => {
@@ -42,8 +42,8 @@ export default function FilterSidebar({
   };
 
   // Calculate percentage along the slider track for the background gradient
-  // Range is min 10 to max 100: percent = ((minMatch - 10) / (100 - 10)) * 100
-  const progressPercent = Math.max(0, Math.min(100, ((minMatch - 10) / 90) * 100));
+  // Range is min 0 to max 100: percent = (minMatch / 100) * 100
+  const progressPercent = Math.max(0, Math.min(100, minMatch));
 
   return (
     <aside className={`filter-sidebar ${isCollapsed ? 'is-collapsed' : ''}`} aria-label="Refine matches">
@@ -196,7 +196,7 @@ export default function FilterSidebar({
           <input
             id="filter-min-match"
             type="range"
-            min="10"
+            min="0"
             max="100"
             value={minMatch}
             onChange={handleMinMatchChange}
@@ -206,7 +206,7 @@ export default function FilterSidebar({
             }}
           />
           <div className="filter-slider-caption">
-            {minMatch}% and above
+            {minMatch > 0 ? `${minMatch}% and above` : 'All matches'}
           </div>
         </div>
       </div>
