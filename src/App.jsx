@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
+import PasswordRecovery from './pages/PasswordRecovery'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import ResumeUpload from './pages/ResumeUpload'
@@ -53,7 +54,13 @@ function ProtectedRoute({ children }) {
   )
 }
 
-export default function App() {
+export default function App({ recovery }) {
+  const { pathname } = useLocation()
+  // Recovery must work even when an unrelated stored login has expired.
+  // Do not restore that login or redirect away while handling a reset link.
+  if (pathname === '/forgot-password' || pathname === '/reset-password') {
+    return <PasswordRecovery key={pathname} resetting={pathname === '/reset-password'} recovery={recovery} />
+  }
   return (
     <AuthProvider>
       <Routes>

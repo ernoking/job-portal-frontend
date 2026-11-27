@@ -9,6 +9,7 @@ const MAX_REQUESTS = 64;
 const REQUEST_ID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const REQUEST_ROUTES = new Map([
   ['/api/auth/register', '/auth/register'], ['/api/auth/login', '/auth/login'],
+  ['/api/auth/forgot-password', '/auth/forgot-password'], ['/api/auth/reset-password', '/auth/reset-password'],
   ['/api/auth/logout', '/auth/logout'], ['/api/me', '/me'], ['/api/account', '/account'],
   ['/api/cv', '/cv'], ['/api/cv/upload', '/cv/upload'], ['/api/profile', '/profile'],
   ['/api/jobs', '/jobs'], ['/api/preferences', '/preferences'], ['/api/ai/usage', '/ai/usage'],
