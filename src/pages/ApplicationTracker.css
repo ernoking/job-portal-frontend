@@ -139,9 +139,9 @@
 }
 
 .tracker-column {
-  background-color: #f1f4f2;
-  border-radius: 14px;
-  padding: 14px;
+  background-color: #f2f4f7;
+  border-radius: 20px;
+  padding: 16px;
   min-height: 480px;
   display: flex;
   flex-direction: column;
@@ -151,28 +151,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   padding: 0 4px;
 }
 
 .tracker-col-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #344054;
+  font-size: 14px;
+  font-weight: 700;
+  color: #101828;
 }
 
 .tracker-col-count {
   font-size: 12px;
   font-weight: 600;
-  color: #667085;
-  background-color: #ffffff;
-  width: 22px;
-  height: 22px;
+  color: #475467;
+  background-color: #e4e7ec;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e0e4e2;
+  border: none;
 }
 
 .tracker-cards-list {
@@ -184,10 +184,10 @@
 /* Card Styling */
 .tracker-card {
   background-color: #ffffff;
-  border: 1px solid #eef2f0;
+  border: 1px solid #eaecf0;
   border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+  padding: 18px 20px 16px 20px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   position: relative;
@@ -196,7 +196,14 @@
 .tracker-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
-  border-color: #d0d5dd;
+}
+
+.tracker-card.is-top-match {
+  border: 2px solid #dcf862;
+}
+
+.tracker-card.is-top-match:hover {
+  border-color: #c6f851;
 }
 
 .tracker-card.is-selected {
@@ -221,9 +228,9 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: #12241a;
-  color: #c6f851;
-  font-size: 14px;
+  background-color: #0f241a;
+  color: #dcf862;
+  font-size: 15px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -232,32 +239,41 @@
 }
 
 .tracker-card-role {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: #15241d;
+  color: #101828;
   margin: 0;
   line-height: 1.25;
 }
 
 .tracker-top-match-badge {
-  background-color: #c6f851;
-  color: #15241d;
-  font-size: 10px;
+  background-color: #dcf862;
+  color: #0f241a;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 12px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.tracker-card-bookmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #0f241a;
 }
 
 .tracker-card-company {
   font-size: 13px;
   font-weight: 500;
-  color: #667085;
+  color: #475467;
   margin: 0 0 6px 0;
 }
 
 .tracker-card-meta {
-  font-size: 11px;
-  color: #98a2b3;
+  font-size: 12px;
+  color: #858e96;
   margin: 0 0 16px 0;
 }
 
@@ -265,17 +281,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid #f2f4f7;
 }
 
 .tracker-fit-pill {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: #3b5f41;
-  background-color: #eaf6dc;
-  padding: 3px 8px;
+  color: #2e4d17;
+  background-color: #edf8cf;
+  padding: 4px 10px;
   border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .tracker-fit-pill.is-unavailable {
@@ -284,10 +302,18 @@
 }
 
 .tracker-card-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #667085;
-  font-size: 16px;
-  letter-spacing: 1px;
-  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.tracker-card-dots:hover {
+  opacity: 0.75;
 }
 
 /* Card Action Buttons */
