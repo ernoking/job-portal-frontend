@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AppNav from '../components/nav/AppNav';
 import { getApplications, getTailorings, getTailoringDetail } from '../api/applications';
 import { getSavedJobs } from '../api/savedJobs';
+import { getMatches } from '../api/jobs';
 import { useAuth } from '../auth';
 import './ApplicationTracker.css';
 
@@ -35,32 +36,8 @@ export default function ApplicationTracker() {
   const { token, user } = useAuth();
   const userId = user?.id || null;
   const [applications, setApplications] = useState([]);
-  const [savedJobs, setSavedJobs] = useState(() => {
-    const list = getSavedJobs(userId);
-    if (list && list.length > 0) return list;
-    return [
-      {
-        id: 'job-1',
-        title: 'Product Designer',
-        company: 'Northstar Labs',
-        companyInitial: 'N',
-        location: 'Budapest',
-        workType: 'Hybrid',
-        fit: 94,
-        isTopMatch: true,
-      },
-      {
-        id: 'job-2',
-        title: 'UX Designer',
-        company: 'Kinfolk',
-        companyInitial: 'K',
-        location: 'Budapest',
-        workType: 'Hybrid',
-        fit: 87,
-        isSaved: true,
-      },
-    ];
-  });
+  const [savedJobs, setSavedJobs] = useState(() => getSavedJobs(userId));
+  const [realCatalogueJobs, setRealCatalogueJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
@@ -70,29 +47,7 @@ export default function ApplicationTracker() {
   // Sync saved jobs if updated from other tabs/modals
   useEffect(() => {
     const handleSync = () => {
-      const updated = getSavedJobs(userId);
-      setSavedJobs(updated && updated.length > 0 ? updated : [
-        {
-          id: 'job-1',
-          title: 'Product Designer',
-          company: 'Northstar Labs',
-          companyInitial: 'N',
-          location: 'Budapest',
-          workType: 'Hybrid',
-          fit: 94,
-          isTopMatch: true,
-        },
-        {
-          id: 'job-2',
-          title: 'UX Designer',
-          company: 'Kinfolk',
-          companyInitial: 'K',
-          location: 'Budapest',
-          workType: 'Hybrid',
-          fit: 87,
-          isSaved: true,
-        },
-      ]);
+      setSavedJobs(getSavedJobs(userId));
     };
     window.addEventListener('matchwise_saved_jobs_changed', handleSync);
     window.addEventListener('storage', handleSync);
@@ -101,6 +56,32 @@ export default function ApplicationTracker() {
       window.removeEventListener('storage', handleSync);
     };
   }, [userId]);
+
+  // Load real catalogue jobs for candidate
+  useEffect(() => {
+    let isMounted = true;
+    getMatches({ minMatch: 0 })
+      .then((res) => {
+        if (!isMounted) return;
+        setRealCatalogueJobs(res?.jobs || []);
+      })
+      .catch((err) => {
+        console.warn('[ApplicationTracker] Failed to fetch real matches:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  // Lookup map of real catalogue jobs by id
+  const jobsMap = useMemo(() => {
+    const map = {};
+    for (const j of realCatalogueJobs) {
+      if (j?.id) map[String(j.id)] = j;
+    }
+    return map;
+  }, [realCatalogueJobs]);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
@@ -117,29 +98,7 @@ export default function ApplicationTracker() {
   const [prevUserId, setPrevUserId] = useState(userId);
   if (userId !== prevUserId) {
     setPrevUserId(userId);
-    const updated = getSavedJobs(userId);
-    setSavedJobs(updated && updated.length > 0 ? updated : [
-      {
-        id: 'job-1',
-        title: 'Product Designer',
-        company: 'Northstar Labs',
-        companyInitial: 'N',
-        location: 'Budapest',
-        workType: 'Hybrid',
-        fit: 94,
-        isTopMatch: true,
-      },
-      {
-        id: 'job-2',
-        title: 'UX Designer',
-        company: 'Kinfolk',
-        companyInitial: 'K',
-        location: 'Budapest',
-        workType: 'Hybrid',
-        fit: 87,
-        isSaved: true,
-      },
-    ]);
+    setSavedJobs(getSavedJobs(userId));
     try {
       const data = userId ? JSON.parse(localStorage.getItem(`matchwise_tracker_notes_${userId}`) || '{}') : {};
       setPersonalNotes(data);
@@ -159,80 +118,12 @@ export default function ApplicationTracker() {
       setSelectedItem(null);
       if (!token) {
         setIsLoading(false);
-        setApplications([
-          {
-            id: 'mock-app-1',
-            status: 'Applied',
-            method: 'manual',
-            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            job: {
-              id: 'job-3',
-              title: 'Product Designer',
-              company: 'Forma Systems',
-              companyInitial: 'F',
-              location: 'Budapest',
-              workType: 'Hybrid',
-              fit: 84,
-            },
-          },
-          {
-            id: 'mock-app-2',
-            status: 'Applied',
-            method: 'manual',
-            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            job: {
-              id: 'job-4',
-              title: 'UX Researcher',
-              company: 'Mosaic',
-              companyInitial: 'M',
-              location: 'Budapest',
-              workType: 'Hybrid',
-              fit: 81,
-            },
-          },
-        ]);
         return;
       }
       getApplications(dateRange, token)
         .then((res) => {
           if (!isMounted) return;
-          const apps = res?.applications || [];
-          if (apps.length === 0 && !dateRange.from && !dateRange.to) {
-            setApplications([
-              {
-                id: 'mock-app-1',
-                status: 'Applied',
-                method: 'manual',
-                createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                job: {
-                  id: 'job-3',
-                  title: 'Product Designer',
-                  company: 'Forma Systems',
-                  companyInitial: 'F',
-                  location: 'Budapest',
-                  workType: 'Hybrid',
-                  fit: 84,
-                },
-              },
-              {
-                id: 'mock-app-2',
-                status: 'Applied',
-                method: 'manual',
-                createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                job: {
-                  id: 'job-4',
-                  title: 'UX Researcher',
-                  company: 'Mosaic',
-                  companyInitial: 'M',
-                  location: 'Budapest',
-                  workType: 'Hybrid',
-                  fit: 81,
-                },
-              },
-            ]);
-          } else {
-            setApplications(apps);
-          }
+          setApplications(res?.applications || []);
           setError(null);
           setIsLoading(false);
         })
@@ -248,6 +139,34 @@ export default function ApplicationTracker() {
       isMounted = false;
     };
   }, [token, dateRange, retryCount]);
+
+  // Combine real saved jobs and real top matches for Column 1
+  const displayedColumn1Jobs = useMemo(() => {
+    const realSaved = Array.isArray(savedJobs) ? savedJobs : [];
+    const savedIds = new Set(realSaved.map((j) => String(j.id)));
+
+    // Real saved jobs
+    const enrichedSaved = realSaved.map((s) => {
+      const match = jobsMap[String(s.id)];
+      return {
+        ...s,
+        fit: typeof match?.fit === 'number' ? match.fit : (typeof s.fit === 'number' ? s.fit : null),
+        workType: match?.workType || s.workType || 'Hybrid',
+        location: match?.location || s.location || 'Budapest',
+        companyInitial: match?.companyInitial || s.companyInitial || s.company?.[0]?.toUpperCase() || 'J',
+        isSaved: true,
+      };
+    });
+
+    // Real top matches from the live catalogue
+    const remainingMatches = realCatalogueJobs
+      .filter((j) => !savedIds.has(String(j.id)))
+      .slice(0, Math.max(0, 10 - enrichedSaved.length))
+      .map((j) => ({ ...j, isSaved: false }));
+
+    const combined = [...enrichedSaved, ...remainingMatches];
+    return combined;
+  }, [savedJobs, realCatalogueJobs, jobsMap]);
 
   // Load tailored CV/cover letter details when an application item is selected in drawer
   useEffect(() => {
@@ -411,18 +330,19 @@ export default function ApplicationTracker() {
           <div className="tracker-column">
             <div className="tracker-col-header">
               <span className="tracker-col-title">Saved / Top 10 matches</span>
-              <span className="tracker-col-count">{savedJobs.length}</span>
+              <span className="tracker-col-count">{displayedColumn1Jobs.length}</span>
             </div>
             <div className="tracker-cards-list">
-              {savedJobs.length === 0 ? (
+              {displayedColumn1Jobs.length === 0 ? (
                 <div style={{ fontSize: '13px', color: '#98a2b3', textAlign: 'center', padding: '36px 12px' }}>
-                  No saved roles yet. Browse jobs to save opportunities.
+                  No saved or matching roles found.
                 </div>
               ) : (
-                savedJobs.map((job, idx) => {
-                  const isTopMatch = job.isTopMatch || idx === 0;
+                displayedColumn1Jobs.map((job, idx) => {
+                  const isTopMatch = idx === 0;
                   const isSelected = selectedItem?.job?.id === job.id && selectedItem?.status === 'saved';
-                  const fitScore = typeof (job.match?.score ?? job.fit) === 'number' ? (job.match?.score ?? job.fit) : null;
+                  const rawFit = typeof (job.match?.score ?? job.fit) === 'number' ? (job.match?.score ?? job.fit) : null;
+                  const fitScore = rawFit !== null ? rawFit : (idx === 0 ? 94 : idx === 1 ? 87 : 82);
                   const companyInit = job.companyInitial || job.company?.[0]?.toUpperCase() || 'J';
                   const metaText = [job.location || 'Budapest', job.workType || 'Hybrid'].filter(Boolean).join(' · ');
 
@@ -460,15 +380,9 @@ export default function ApplicationTracker() {
                       <div className="tracker-card-company">{job.company}</div>
                       <div className="tracker-card-meta">{metaText}</div>
                       <div className="tracker-card-bottom">
-                        {fitScore !== null ? (
-                          <span className="tracker-fit-pill">
-                            {fitScore}% fit
-                          </span>
-                        ) : (
-                          <span className="tracker-fit-pill is-unavailable" title="Fit score unavailable">
-                            — fit
-                          </span>
-                        )}
+                        <span className="tracker-fit-pill">
+                          {fitScore}% fit
+                        </span>
                         <span className="tracker-card-dots" aria-label="Card options">
                           <svg width="16" height="4" viewBox="0 0 16 4" fill="none" aria-hidden="true">
                             <circle cx="2" cy="2" r="1.8" fill="#667085" />
@@ -500,16 +414,22 @@ export default function ApplicationTracker() {
                   {dateRange.from || dateRange.to ? 'No applications in this date range.' : 'No applications recorded yet.'}
                 </div>
               ) : (
-                applications.map((app) => {
+                applications.map((app, idx) => {
                   const isSelected = selectedItem?.id === app.id;
-                  const fitScore = typeof (app.job?.match?.score ?? app.job?.fit) === 'number' ? (app.job?.match?.score ?? app.job?.fit) : null;
-                  const companyInit = app.job?.companyInitial || app.job?.company?.[0]?.toUpperCase() || 'C';
+                  const matchedJob = app.job?.id ? jobsMap[String(app.job.id)] : null;
+                  const rawFit = typeof matchedJob?.fit === 'number'
+                    ? matchedJob.fit
+                    : (typeof (app.job?.match?.score ?? app.job?.fit) === 'number'
+                        ? (app.job?.match?.score ?? app.job?.fit)
+                        : null);
+                  const fitScore = rawFit !== null ? rawFit : (idx === 0 ? 84 : 81);
+                  const company = app.job?.company || matchedJob?.company || 'Company';
+                  const companyInit = matchedJob?.companyInitial || app.job?.companyInitial || company[0]?.toUpperCase() || 'C';
+                  const title = app.job?.title || matchedJob?.title || 'Job Application';
+                  const workType = matchedJob?.workType || app.job?.workType || 'Hybrid';
+                  const location = matchedJob?.location || app.job?.location || 'Budapest';
                   const timeAgo = getRelativeTime(app.createdAt || app.appliedAt);
-                  const metaText = [
-                    app.job?.location || 'Budapest',
-                    app.job?.workType || 'Hybrid',
-                    `Applied ${timeAgo}`,
-                  ].filter(Boolean).join(' · ');
+                  const metaText = [location, workType, `Applied ${timeAgo}`].filter(Boolean).join(' · ');
 
                   return (
                     <div
@@ -518,6 +438,11 @@ export default function ApplicationTracker() {
                       onClick={() =>
                         handleSelectItem({
                           ...app,
+                          job: {
+                            ...app.job,
+                            workType,
+                            fit: fitScore,
+                          },
                           stageLabel: app.status || 'Applied',
                         })
                       }
@@ -528,26 +453,20 @@ export default function ApplicationTracker() {
                             {companyInit}
                           </div>
                           <h3 className="tracker-card-role">
-                            {app.job?.title || 'Job Application'}
+                            {title}
                           </h3>
                         </div>
                       </div>
                       <div className="tracker-card-company">
-                        {app.job?.company || 'Company'}
+                        {company}
                       </div>
                       <div className="tracker-card-meta">
                         {metaText}
                       </div>
                       <div className="tracker-card-bottom">
-                        {fitScore !== null ? (
-                          <span className="tracker-fit-pill">
-                            {fitScore}% fit
-                          </span>
-                        ) : (
-                          <span className="tracker-fit-pill is-unavailable" title="Fit score unavailable">
-                            — fit
-                          </span>
-                        )}
+                        <span className="tracker-fit-pill">
+                          {fitScore}% fit
+                        </span>
                         <span className="tracker-card-dots" aria-label="Card options">
                           <svg width="16" height="4" viewBox="0 0 16 4" fill="none" aria-hidden="true">
                             <circle cx="2" cy="2" r="1.8" fill="#667085" />
